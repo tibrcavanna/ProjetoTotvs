@@ -1,0 +1,70 @@
+#include "totvs.ch"
+#INCLUDE "TOPCONN.CH"
+
+User Function jlsconsu()
+
+	processa({|| f_fol()}, "Aguarde", "Gravando dados da SRD 02/2018 para a SRC...",.F.)
+
+Return	
+
+Static Function f_fol()
+
+	Local n_totreg := 0
+	
+	c_qry := "SELECT *"
+	c_qry += " FROM SRD010"
+	c_qry += " WHERE D_E_L_E_T_ <> '*'"
+	c_qry += " AND RD_DATARQ = '201802'"
+	c_qry += " AND RD_PROCES = '00001'"
+	c_qry += " ORDER BY RD_FILIAL, RD_MAT"
+	
+	TCQUERY c_qry NEW ALIAS "QRY"
+	
+	dbselectarea("QRY")
+	Count To n_totreg
+	procregua(n_totreg)
+	QRY->(dbgotop())
+	while QRY->(!eof())
+		reclock("SRC", .T.)
+			SRC->RC_FILIAL 	:= QRY->RD_FILIAL
+			SRC->RC_MAT 	:= QRY->RD_MAT
+			SRC->RC_PD		:= QRY->RD_PD
+			SRC->RC_TIPO1 	:= QRY->RD_TIPO1
+			SRC->RC_QTDSEM	:= QRY->RD_QTDSEM
+			SRC->RC_HORINFO	:= QRY->RD_HORINFO
+			SRC->RC_HORAS	:= QRY->RD_HORAS
+			SRC->RC_VALINFO	:= QRY->RD_VALINFO
+			SRC->RC_VALOR	:= QRY->RD_VALOR
+			SRC->RC_VNAOAPL	:= QRY->RD_VNAOAPL
+			SRC->RC_DATA	:= stod(QRY->RD_DATPGT)
+			SRC->RC_DTREF	:= stod(QRY->RD_DTREF)
+			SRC->RC_SEMANA	:= QRY->RD_SEMANA
+			SRC->RC_CC		:= QRY->RD_CC
+			//SRC->RC_PARCELA:= "01"
+			SRC->RC_TIPO2	:= QRY->RD_TIPO2
+			SRC->RC_SEQ		:= QRY->RD_SEQ
+			SRC->RC_VALORBA	:= QRY->RD_VALORBA
+			SRC->RC_PROCES	:= QRY->RD_PROCES
+			SRC->RC_PERIODO	:= QRY->RD_PERIODO
+			SRC->RC_POSTO	:= QRY->RD_POSTO
+			SRC->RC_NUMID	:= QRY->RD_NUMID
+			SRC->RC_ROTEIR	:= QRY->RD_ROTEIR
+			SRC->RC_DEPTO	:= QRY->RD_DEPTO
+			SRC->RC_NODIA	:= QRY->RD_NODIA
+			SRC->RC_DIACTB	:= QRY->RD_DIACTB
+			SRC->RC_ITEM	:= QRY->RD_ITEM
+			SRC->RC_CLVL	:= QRY->RD_CLVL
+			SRC->RC_EMPCONS	:= QRY->RD_EMPCONS
+			SRC->RC_IDCMPL	:= QRY->RD_IDCMPL
+			SRC->RC_PLNUCO	:= QRY->RD_PLNUCO
+			SRC->RC_CODB1T	:= QRY->RD_CODB1T
+			SRC->RC_LOTPLS	:= QRY->RD_LOTPLS
+			SRC->RC_CODRDA	:= QRY->RD_CODRDA
+		msunlock()
+		QRY->(dbskip())
+		incproc()
+	enddo
+	dbselectarea("QRY")
+	dbclosearea()
+
+Return

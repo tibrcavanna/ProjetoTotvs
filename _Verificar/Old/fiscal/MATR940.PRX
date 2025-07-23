@@ -1,0 +1,345 @@
+#INCLUDE "Matr940.ch"
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡…o    ³ MATR940  ³ Autor ³ Juan Jose Pereira     ³ Data ³ 08.01.96 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Registro de Apuracao de ICMS - P9                          ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ Generico                                                   ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+FUNCTION MATR940
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Define Variaveis ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+wnRel:="MATR940"
+titulo:=STR0001 //"Registro de Apuracao de ICMS"
+cDesc1:=STR0002 //"Este programa ir  imprimir o Livro de Registro de Apuracao de ICMS (modelo P9)"
+cDesc2:=STR0003 //"conforme parƒmetros e per¡odo informados."
+cDesc3:=""
+aReturn:= { STR0004, 1,STR0005, 2, 2, 1, "",1 } //"Zebrado"###"Administra‡„o"
+nomeprog:="MATR940"
+cPerg:="MTR941"
+cString:="SF3"
+nPagina:=0
+nLin:=80
+Tamanho:="M"
+_Retorno:=NIL
+//
+AjustaSx1 (cPerg)
+Pergunte(cPerg,.T.)
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Envia controle para a funcao SETPRINT ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+nLastKey:=0
+Iif(mv_par14==1,Tamanho:="M",Tamanho:="G")
+wnrel:=SetPrint(cString,wnrel,cPerg,Titulo,cDesc1,cDesc2,cDesc3,.F.,"",,Tamanho,,.T.)
+If nLastKey==27
+	dbClearFilter()
+	Return
+Endif
+SetDefault(aReturn,cString)
+If nLastKey==27
+	dbClearFilter()
+	Return
+Endif
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Executa relatorio                                            ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+RptStatus({|lEnd| R940Imp(@lEnd,wnRel,cString,Tamanho)},titulo)
+
+If aReturn[5]==1
+	Set Printer To
+	ourspool(wnrel)
+Endif
+MS_FLUSH()
+
+Return
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡…o    ³ R940Imp  ³ Autor ³ Juan Jose Pereira     ³ Data ³ 18.12.96 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Imprime Relatorio                                          ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+STATIC FUNCTION R940Imp(lEnd,wnRel,cString,Tamanho)
+
+LOCAL lMatr941:=(existblock("MATR941")),aDatas
+
+PRIVATE lAbortPrint:=.F.
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ mv_par01 = Mes                                                                   ³
+//³ mv_par02 = Ano                                                                   ³
+//³ mv_par03 = Tipo de Apuracao ? Decendial / Quinzenal / Mensal / Semestral / Anual ³
+//³ mv_par04 = Periodo Apurado ? 1 / 2 / 3  / 4                                      ³
+//³ mv_par05 = Concilia apuracoes ? Sim / Nao                                        ³
+//³ mv_par06 = Quebra da Apuracao ? Por Aliquota / Por CFO                           ³
+//³ mv_par07 = Indice de Conversao                                                   ³
+//³ mv_par08 = Exibe valores convertidos? Sim / Nao                                  ³
+//³ mv_par09 = Livro Selecionado                                                     ³
+//³ mv_par10 = Dt Entrega da Guia                                                    ³
+//³ mv_par11 = Local de Entrega da Guia                                              ³
+//³ mv_par12 = numero de paginas                                                     ³
+//³ mv_par13 = paginas por feixe                                                     ³
+//³ mv_par14 = imprime ? livro / termos                                              ³
+//³ mv_par15 = Livro Nr?                                                             ³
+//³ mv_par16 = Considera Nao Tributadas                                              ³
+//³ mv_par17 = Valor Contabil Imprime ? Valor Contabil / Aliquota                    ³
+//³ mv_par18 = Imprime resumo por UF( Subst. Tributaria)? Sim/Nao                    ³
+//³ mv_par19 = Imprime diferencial de aliquota                                       ³
+//³ mv_par20 = Imprime Credito ST                                                    ³
+//³ mv_par21 = Imprime Credito Estimulo                                              ³
+//³ mv_par22 = Filial De                                                             ³
+//³ mv_par23 = Filial Ate                                                            ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+PRIVATE nMes		:=	mv_par01,;
+		nAno		:=	mv_par02,;
+		nApuracao	:=	mv_par03,;
+		nPerApurado	:=	mv_par04,;
+		lConcilia	:=	(mv_par05==1),;
+		nQuebra		:=	mv_par06,;
+		nIndice		:=	IIf(mv_par07>0,mv_par07,1),;
+		lConverte	:=	(mv_par08==1),;
+		cNrLivro	:=	mv_par09,;
+		dDtEntrega	:=	mv_par10,;
+		cLocEntrega	:=	Upper(mv_par11),;
+		nPagIni		:=	mv_par12,;
+		nQtFeixe	:=	mv_par13,;
+		nImprime	:=	mv_par14,;
+		lNaoTrib	:=	(mv_par16==1),;
+		lVlrCtb 	:=	(mv_par17==1),;
+		lResST		:=	(mv_par18==1),;
+		lImpCrdSt 	:=  (mv_par20==1),;
+		lMv_UFSt  	:=  If(!Empty(GetNewPar("MV_UFST","")),.T.,.F.),;
+		lCrdEst		:=	(MV_PAR21==1),;
+		cFilDe		:=	Iif (Empty (MV_PAR22) .And. Empty (MV_PAR23), cFilAnt, MV_PAR22),;
+		cFilAte		:=	Iif (Empty (MV_PAR23), cFilAnt, MV_PAR23)
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Define picture padrao dos valores                            ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+PRIVATE cPictVal:="@E) 999,999,999,999.99"
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Define dias de inicio e fim da apuracao                      ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+PRIVATE nPeriodo:=0,dDtIni,dDtFim
+aDatas:=DetDatas(nMes,nAno,nApuracao,nPerApurado)
+dDtIni:=aDatas[1]
+dDtFim:=aDatas[2]
+
+If lMatr941
+	ExecBlock("MATR941",.F.,.F.)
+Else
+	Matr941()
+Endif
+
+Return
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³AjustaSx1 ºAutor  ³Gustavo G. Rueda    º Data ³  11/02/2005 º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³Ajusta as perguntas necessarias para a rotina.              º±±
+±±º          ³                                                            º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP                                                         º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static Function AjustaSx1 (cPerg)
+Local		aArea	:=  GetArea()
+	
+Local		aHelpPor	:=	{}
+Local		aHelpEng	:=	{}
+Local		aHelpSpa	:=	{}
+
+SX1->(dbSetOrder(1))
+If (SX1->(DbSeek (cPerg+"04"))) .And. Empty (SX1->X1_DEF04)
+	RecLock ("SX1", .F.)
+	SX1->X1_DEF04	:= 	"1 e 2 Periodo"
+	SX1->X1_DEFSPA4	:=	"1 y 2 Periodo"
+	SX1->X1_DEFENG4	:=	"Periods 1 and 2"
+	SX1->(MsUnLock ())
+EndIf
+
+aHelpPor	:=	{}
+aHelpEng	:=	{}
+aHelpSpa	:=	{}	
+Aadd( aHelpPor, "Informa se deve considerar (Sim) ou Não " )
+Aadd( aHelpPor, "o crédito estímulo na região de Manaus  " )
+Aadd( aHelpEng, "                                        " )
+Aadd( aHelpEng, "                                        " )
+Aadd( aHelpSpa, "                                        " )
+Aadd( aHelpSpa, "                                        " )
+PutSx1 ("MTR941","21","Imprime Credito Estimulo","Imprime Credito Estimulo","Imprime Credito Estimulo","mv_chl","N",1,0,2,"C","","","","","mv_par21","Sim","","","","Nao","","","","","","","","","","","",aHelpPor,aHelpEng,aHelpSpa)
+	
+aHelpPor	:=	{}
+aHelpEng	:=	{}
+aHelpSpa	:=	{}	
+Aadd( aHelpPor, "Informe a filial inicial no caso de pro-" )
+Aadd( aHelpPor, "cessamento consolidado.                 " )
+Aadd( aHelpEng, "Informe a filial inicial no caso de pro-" )
+Aadd( aHelpEng, "cessamento consolidado.                 " )
+Aadd( aHelpSpa, "Informe a filial inicial no caso de pro-" )
+Aadd( aHelpSpa, "cessamento consolidado.                 " )
+PutSx1 ("MTR941","22","Filial De","Filial De","Filial De","mv_chv","C",2,0,0,"G","","","","","mv_par22","","","","","","","","","","","","","","","","",aHelpPor,aHelpEng,aHelpSpa)
+
+aHelpPor	:=	{}
+aHelpEng	:=	{}
+aHelpSpa	:=	{}	
+Aadd( aHelpPor, "Informe a filial final  no caso de  pro-" )
+Aadd( aHelpPor, "cessamento consolidado.                 " )
+Aadd( aHelpEng, "Informe a filial final  no caso de  pro-" )
+Aadd( aHelpEng, "cessamento consolidado.                 " )
+Aadd( aHelpSpa, "Informe a filial final  no caso de  pro-" )
+Aadd( aHelpSpa, "cessamento consolidado.                 " )
+PutSx1 ("MTR941","23","Filial Ate","Filial Ate","Filial Ate","mv_chx","C",2,0,0,"G","","","","","mv_par23","","","","","","","","","","","","","","","","",aHelpPor,aHelpEng,aHelpSpa)
+aHelpPor :={} 
+aHelpEng :={} 
+aHelpSpa :={} 
+
+//ÚÄÄÄÄÄÄÄÄÄ¿
+//³Portugues³
+//ÀÄÄÄÄÄÄÄÄÄÙ
+Aadd( aHelpPor, "Na obrigação da escrituracão do livro ")
+Aadd( aHelpPor, "de acordo com o Mapa Resumo.  ")
+Aadd( aHelpPor, "Somente tem validade esta pergunta, se  ")
+Aadd( aHelpPor, "o parâmetro MV_LJLVFIS for igual a 2. ")
+
+//ÚÄÄÄÄÄÄÄÄ¿
+//³Espanhol³
+//ÀÄÄÄÄÄÄÄÄÙ
+Aadd( aHelpEng, "En la obrigación de la escrituración del libro ")
+Aadd( aHelpEng, "de acuerdo con el Mapa Resumo.  ") 
+Aadd( aHelpEng, "Solamente tienda validad la pregunta,  ") 
+Aadd( aHelpEng, "con el parametro MV_LJLVFIS iqual a 2. ") 
+
+//ÚÄÄÄÄÄÄ¿
+//³Ingles³
+//ÀÄÄÄÄÄÄÙ
+Aadd( aHelpSpa, "In the obligation of the bookkeeping of the book ") 
+Aadd( aHelpSpa, "in accordance with the Map Summary. ") 
+Aadd( aHelpSpa, "This question only has validity, if ") 
+Aadd( aHelpSpa, "equal parameter MV_LJLVFIS the 2. ") 
+
+PutSx1("MTR941","24","Imprime Mapa Resumo ?","Emite Mapa Resumo ?","Printed Map Summary ?","mv_chw","N",01,0,2,"C","MatxRValPer(mv_par24)","","","","mv_par24","Sim","Si","Yes","","Nao","No","No","","","","","","","","","",aHelpPor,aHelpEng,aHelpSpa)
+
+aHelpPor	:=	{}
+aHelpEng	:=	{}
+aHelpSpa	:=	{} 
+
+Aadd( aHelpPor, "Seleciona as filiais desejadas.")
+Aadd( aHelpPor, "Se NÃO apenas a filial corrente")
+Aadd( aHelpPor, "sera afetada")
+	
+Aadd( aHelpEng, "Seleciona as filiais desejadas.")
+Aadd( aHelpEng, "Se NÃO apenas a filial corrente")
+Aadd( aHelpEng, "sera afetada")
+	
+Aadd( aHelpSpa, "Seleciona as filiais desejadas.")
+Aadd( aHelpSpa, "Se NÃO apenas a filial corrente")
+Aadd( aHelpSpa, "sera afetada")            
+	
+PutSx1("MTR941","25","Seleciona filiais ?","¿Selecciona sucursales ?","Select branch offices ?",;
+	"mv_chp","N",1,0,2,"C","","","","","mv_par25","Sim","Si","Yes","",;
+	"Nao","No","No","","","","","","","","","",aHelpPor,aHelpEng,aHelpSpa)
+	
+If SX1->(DbSeek (cPerg+"25")) .And. SX1->X1_TIPO # 'N'
+	RecLock ("SX1", .F.)
+	SX1->X1_TIPO := "N"
+	SX1->(MsUnLock ())
+EndIf
+
+//Imprime Série no Termo de Abertura: S/N
+aHelpPor	:=	{}
+aHelpEng	:=	{}
+aHelpSpa	:=	{} 
+
+Aadd( aHelpPor, "Informa se deseja imprimir    ")
+Aadd( aHelpPor, "a Série no Termo de Abertura  ")
+    
+aHelpSpa := aHelpEng := aHelpPor
+	
+PutSx1("MTR941","26","Série no Termo ?","Série no Termo  ?","Série no Termo ?",;
+		"mv_chp","N",1,0,2,"C","","","","","mv_par26","Sim","Si","Yes","",;
+		"Nao","No","No","","","","","","","","","",aHelpPor,aHelpEng,aHelpSpa)	
+		
+//Série do Termo de Abertura			
+aHelpPor	:=	{}
+aHelpEng	:=	{}
+aHelpSpa	:=	{}	
+	
+Aadd( aHelpPor, "Informe a Série/SubSérie a ser impressa " )
+Aadd( aHelpPor, "no Termo de Abertura                    " )
+	
+aHelpSpa := aHelpEng := aHelpPor
+	
+PutSx1 ("MTR941","27","Série/SubSérie","Série/SubSérie","Série/SubSérie","mv_chx","C",5,0,0,"G","","","","","mv_par27","","","","","","","","","","","","","","","","",aHelpPor,aHelpEng,aHelpSpa)
+
+PutSx1("MTR941", ;  	                	            //-- 01 - X1_GRUPO
+	'28' , ;                  		                //-- 02 - X1_ORDEM
+	'Aglutina por CNPJ+IE', ;          				//-- 03 - X1_PERGUNT
+	'aglutinados  CNPJ+IE', ;	       				//-- 04 - X1_PERSPA
+	'agglutinated CNPJ+IE', ;        				//-- 05 - X1_PERENG
+	'mv_cho', ;                                     //-- 06 - X1_VARIAVL
+	'N', ;                                          //-- 07 - X1_TIPO
+	1, ;                                            //-- 08 - X1_TAMANHO
+	0, ;                                            //-- 09 - X1_DECIMAL
+	2, ;                                            //-- 10 - X1_PRESEL
+	'C', ;                                          //-- 11 - X1_GSC
+	'', ;                                           //-- 12 - X1_VALID
+	'', ;                                           //-- 13 - X1_F3
+	'', ;                                           //-- 14 - X1_GRPSXG
+	'', ;                                           //-- 15 - X1_PYME
+	'mv_par28', ;                                   //-- 16 - X1_VAR01
+	'Sim' , ;                           			//-- 17 - X1_DEF01
+	'Si', ;	                            			//-- 18 - X1_DEFSPA1
+	'Yes', ;                            			//-- 19 - X1_DEFENG1
+	'', ;                                           //-- 20 - X1_CNT01
+	'Nao', ;                            			//-- 21 - X1_DEF02
+	'No', ;	                            			//-- 22 - X1_DEFSPA2
+	'No', ; 	                           			//-- 23 - X1_DEFENG2
+	'', ;                             				//-- 24 - X1_DEF03
+	'', ;                             				//-- 25 - X1_DEFSPA3
+	'', ;                             				//-- 26 - X1_DEFENG3
+	'', ;                                           //-- 27 - X1_DEF04
+	'', ;                                           //-- 28 - X1_DEFSPA4
+	'', ;                                           //-- 29 - X1_DEFENG4
+	'', ;                                           //-- 30 - X1_DEF05
+	'', ;                                           //-- 31 - X1_DEFSPA5
+	'', ;                                           //-- 32 - X1_DEFENG5
+     {'Aglutina a impressão do relatorio por '	,;  //-- 33 - HelpPor1#3
+      'CNPJ+IE respeitando a seleção de filiais ',;
+      'realizada pelo usuario. Este tratamento'	,;
+      'somente sera realizado quando utilizada'	,;
+      'a pergunta de seleção de filiais.'		,;
+      'Tratamento disponivel somente para '		,;
+      'ambientes DBAccess.'				   		},;   
+     {'Fusiona la impresión del informe de '	,;  //-- 34 - HelpPor1#3
+      'CNPJ+IE sobre la selección de las '	,;
+      'sucursales que tiene el usuario. Se'	    ,;
+      'llevará a cabo este tratamiento sólo se'	,;
+      'utiliza cuando la cuestión de la'		,;
+      'selección de ramas.'						,;
+      'El tratamiento disponible sólo para'     ,;
+      'entornos DBAccess.'                      },;
+     {'Coalesces printing of the report by '	,;  //-- 35 - HelpPor1#3
+      'CNPJ+IE respecting the selection of '	,;
+      'branches held by the User. This treatment',;
+      'will be performed only used when the'	,;
+      'question of selecting branches.'			,;
+      'Treatment available only for DBAccess'   ,;
+      'environments.'                           },;
+	 '')                                            //-- 36 - X1_HELP
+RestArea(aArea)
+Return ()

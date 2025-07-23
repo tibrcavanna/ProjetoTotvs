@@ -1,0 +1,662 @@
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\rwmake.ch"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\stdwin.ch"
+#line 14 "rwmake.ch"
+#line 3 "e:\TOTVS1~3\MICROS~1\protheus\projeto\NFSERV~1.PRW"
+
+
+
+
+Function U_Nfservico()
+
+SetPrvt("CBTXT,CBCONT,NORDEM,ALFA,Z,M")
+SetPrvt("XCOD_CLI,XNOME_CLI,XEND_CLI,XBAIRRO,XCEP_CLI,XCOB_CLI")
+SetPrvt("XREC_CLI,XMUN_CLI,XEST_CLI,XCGC_CLI,XINSC_CLI,XTRAN_CLI")
+SetPrvt("XSUFRAMA,XCALCSUF,XNOME_TRANSP,XEND_TRANSP,XMUN_TRANSP,XEST_TRANSP")
+SetPrvt("XVIA_TRANSP,TAMANHO,LIMITE,TITULO,CDESC1,CDESC2")
+SetPrvt("CDESC3,CNATUREZA,ARETURN,NOMEPROG,CPERG,NLASTKEY")
+SetPrvt("LCONTINUA,WNREL,CSTRING,XNUM_NF,XSERIE,XEMISSAO")
+SetPrvt("XTOT_FAT,XLOJA,XICMS_RET,XVALOR_MERC,XNUM_DUPLIC,XCOND_PAG")
+SetPrvt("XPBRUTO,XPLIQUI,XTIPO,XESPECIE,XVOLUME,CPEDATU")
+SetPrvt("CITEMATU,XPED_VEND,XITEM_PED,XPREF_DV,XICMS,XCOD_PRO")
+SetPrvt("XQTD_PRO,XPRE_UNI,XPRE_TAB,XDESC,XVAL_MERC,XTES")
+SetPrvt("XCF,XICMSOL,XPESO_PRO,XPESO_UNIT,XDESCRICAO,XUNID_PRO")
+SetPrvt("XMEN_TRIB,XMEN_POS,XISS,XTIPO_PRO,XLUCRO,XCLFISCAL")
+SetPrvt("I,XPED,XCLIENTE,XTIPO_CLI,XCOD_MENS,XMENSAGEM")
+SetPrvt("XCONDPAG,XPESOL,XCOD_VEND,XDESC_NF,XDESC_PAG,XPED_CLI")
+SetPrvt("XDESC_PRO,J,XTEL_TRANSP,XPARC_DUP,XVENC_DUP,XVALOR_DUP")
+SetPrvt("XDUPLICATAS,WPESQ,XNATUREZA,NOPC,CCOR,NTAMDET")
+SetPrvt("WQTD2,WVALMERC,WUNIT,WCONTA,WUNID,WDESC")
+SetPrvt("XPRODUTO,LI,NTAMOBS,SPED,L,X")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+CbTxt:=""
+CbCont:=""
+nOrdem :=0
+Alfa := 0
+Z:=0
+M:=0
+xCOD_CLI := " "
+xNOME_CLI:= " "
+xEND_CLI := " "
+xBAIRRO  := " "
+xCEP_CLI := " "
+xCOB_CLI := " "
+xREC_CLI := " "
+xMUN_CLI := " "
+xEST_CLI := " "
+xCGC_CLI := " "
+xINSC_CLI:= " "
+xTRAN_CLI:= " "
+xSUFRAMA := " "
+xCALCSUF := " "
+
+xNOME_TRANSP := " "
+xEND_TRANSP  := " "
+xMUN_TRANSP  := " "
+xEST_TRANSP  := " "
+xVIA_TRANSP  := " "
+
+
+tamanho:="G"
+limite :=220
+titulo :=PADC("Nota Fiscal - Cavanna",74)
+cDesc1 :=PADC("Este programa ira emitir a Nota Fiscal de Servico",74)
+cDesc2 :=""
+cDesc3 :=""
+cNatureza:=""
+aReturn := { "Especial", 1,"Administracao", 1, 2, 1,"",1 }
+nomeprog:="nfservico"
+cPerg:="NFSIGW"
+nLastKey:= 0
+lContinua := .T. 
+wnrel    := "NFSER"
+
+
+
+
+
+Pergunte(cPerg, .F. )
+
+cString:="SF2"
+
+
+
+
+
+wnrel:=SetPrint(cString,wnrel,cPerg,Titulo,cDesc1,cDesc2,cDesc3, .T. )
+
+If nLastKey == 27
+   Return
+Endif
+
+
+
+
+SetDefault(aReturn,cString)
+
+If nLastKey == 27
+   Return
+Endif
+
+VerImp()
+
+
+
+
+RptStatus({|| RptDetail()})
+
+Return
+
+Static Function RptDetail()
+
+
+
+
+SetRegua(Val(mv_par02)-Val(mv_par01))
+
+
+Set( 20, "PRINTER" )
+setprc(0,0)
+
+
+
+
+dbSelectArea("SF2")
+dbSetOrder(1)
+dbSeek(xFilial()+mv_par01+mv_par03, .t. )
+   While !eof() .and.  SF2->F2_DOC    <= mv_par02 .and.  lContinua
+
+      If SF2->F2_SERIE #mv_par03
+    	 DbSkip()
+	     Loop
+      Endif
+
+
+
+
+
+
+
+
+	      IF lAbortPrint
+		   PrintOut(00,01,"** CANCELADO PELO OPERADOR **",)
+		   lContinua := .F. 
+		   Exit
+	      Endif
+
+
+
+
+
+
+
+
+      xNUM_NF     :=SF2->F2_DOC
+      xSERIE      :=SF2->F2_SERIE
+      xEMISSAO    :=SF2->F2_EMISSAO
+      xTOT_FAT    :=SF2->F2_VALFAT
+      if xTOT_FAT == 0
+    	 xTOT_FAT := SF2->F2_VALMERC+SF2->F2_VALIPI+SF2->F2_SEGURO+SF2->F2_FRETE
+      endif
+
+      xLOJA       :=SF2->F2_LOJA
+      xICMS_RET   :=SF2->F2_ICMSRET
+      xVALOR_MERC :=SF2->F2_VALFAT
+      xNUM_DUPLIC :=SF2->F2_DUPL
+      xCOND_PAG   :=SF2->F2_COND
+      xPBRUTO     :=SF2->F2_PBRUTO
+      xPLIQUI     :=SF2->F2_PLIQUI
+      xTIPO       :=SF2->F2_TIPO
+      xESPECIE    :=SF2->F2_ESPECI1
+      xVOLUME     :=SF2->F2_VOLUME1
+      xBASEISS    :=SF2->F2_BASEISS
+      xVALISS     :=SF2->F2_VALISS
+      xVALINSS    :=SF2->F2_VALINSS
+
+      dbSelectArea("SD2")
+      dbSetOrder(3)
+      dbSeek(xFilial()+xNUM_NF+xSERIE)
+
+      cPedAtu  := SD2->D2_PEDIDO
+      cItemAtu := SD2->D2_ITEMPV
+
+      xPED_VEND:={}
+      xITEM_PED:={}
+      xPREF_DV :={}
+      xICMS    :={}
+      xCOD_PRO :={}
+      xQTD_PRO :={}
+      xPRE_UNI :={}
+      xPRE_TAB :={}
+      xDESC    :={}
+      xVAL_MERC:={}
+      xTES     :={}
+      xCF      :={}
+      xICMSOL  :={}
+
+      while !eof() .and.  SD2->D2_DOC==xNUM_NF .and.  SD2->D2_SERIE==xSERIE
+	    If SD2->D2_SERIE #mv_par03
+		 DbSkip()
+		 Loop
+	    Endif
+	    AADD(xPED_VEND ,SD2->D2_PEDIDO)
+	    AADD(xITEM_PED ,SD2->D2_ITEMPV)
+	    AADD(xPREF_DV  ,SD2->D2_SERIORI)
+	    AADD(xICMS     ,IIf(Empty(SD2->D2_PICM),0,SD2->D2_PICM))
+	    AADD(xCOD_PRO  ,SD2->D2_COD)
+	    AADD(xQTD_PRO  ,SD2->D2_QUANT)
+	    AADD(xPRE_UNI  ,SD2->D2_PRCVEN)
+	    AADD(xPRE_TAB  ,SD2->D2_PRUNIT)
+	    AADD(xDESC     ,SD2->D2_DESC)
+	    AADD(xVAL_MERC ,SD2->D2_TOTAL)
+	    AADD(xTES      ,SD2->D2_TES)
+	    AADD(xCF       ,SD2->D2_CF)
+        dbskip()
+      End
+
+      xPESO_PRO:={}
+      xPESO_UNIT :={}
+      xDESCRICAO :={}
+      xUNID_PRO:={}
+      xMEN_TRIB:={}
+      xMEN_POS :={}
+      xISS     :={}
+      xTIPO_PRO:={}
+      xLUCRO   :={}
+      xCLFISCAL   :={}
+      I:=1
+
+      For I:=1 to Len(xCOD_PRO)
+
+	  dbSelectArea("SB1")
+	  dbSetOrder(1)
+	  dbSeek(xFilial()+xCOD_PRO[I])
+	  AADD(xUNID_PRO ,SB1->B1_UM)
+	  AADD(xDESCRICAO ,SB1->B1_DESC)
+
+	  If SB1->B1_ALIQISS > 0
+	     AADD(xISS ,SB1->B1_ALIQISS)
+	  Endif
+	  AADD(xTIPO_PRO ,SB1->B1_TIPO)
+	  AADD(xLUCRO    ,SB1->B1_PICMRET)
+      Next
+
+      dbSelectArea("SC5")
+      dbSetOrder(1)
+      xPED        := {}
+
+      For I:=1 to Len(xPED_VEND)
+
+	   dbSeek(xFilial()+xPED_VEND[I])
+
+	   If ASCAN(xPED,xPED_VEND[I])==0
+	    dbSeek(xFilial()+xPED_VEND[I])
+	    xCLIENTE    :=SC5->C5_CLIENTE
+	    xTIPO_CLI   :=SC5->C5_TIPOCLI
+	    xCOD_MENS   :=SC5->C5_MENPAD
+	    xMENSAGEM   :=SC5->C5_MENNOTA
+	    xCONDPAG    :=SC5->C5_CONDPAG
+        xPESOL      :=SC5->C5_PESOL
+
+
+
+
+	    xCOD_VEND:= {SC5->C5_VEND1,			 SC5->C5_VEND2,			 SC5->C5_VEND3,			 SC5->C5_VEND4,			 SC5->C5_VEND5}
+
+
+
+	    xDESC_NF := {SC5->C5_DESC1,			 SC5->C5_DESC2,			 SC5->C5_DESC3,			 SC5->C5_DESC4}
+	    AADD(xPED,xPED_VEND[I])
+	    Endif
+      Next
+
+      dbSelectArea("SE4")
+      dbSetOrder(1)
+      dbSeek(xFilial("SE4")+xCONDPAG)
+      xDESC_PAG := SE4->E4_DESCRI
+
+      dbSelectArea("SC6")
+      dbSetOrder(1)
+      xPED_CLI :={}
+      xDESC_PRO:={}
+      J:=Len(xPED_VEND)
+      For I:=1 to J
+	    dbSeek(xFilial()+xPED_VEND[I]+xITEM_PED[I])
+	    AADD(xPED_CLI ,SC6->C6_PEDCLI)
+	    AADD(xDESC_PRO,SC6->C6_DESCRI)
+      Next
+
+      If xTIPO=="N" .OR.  xTIPO=="C" .OR.  xTIPO=="P" .OR.  xTIPO=="I" .OR.  xTIPO=="S" .OR.  xTIPO=="T" .OR.  xTIPO=="O"
+
+	    dbSelectArea("SA1")
+	    dbSetOrder(1)
+	    dbSeek(xFilial()+xCLIENTE+xLOJA)
+	    xCOD_CLI :=SA1->A1_COD
+	    xNOME_CLI:=SA1->A1_NOME
+	    xEND_CLI :=SA1->A1_END
+	    xBAIRRO  :=SA1->A1_BAIRRO
+	    xCEP_CLI :=SA1->A1_CEP
+	    xCOB_CLI :=SA1->A1_ENDCOB
+	    xREC_CLI :=SA1->A1_ENDENT
+	    xMUN_CLI :=SA1->A1_MUN
+	    xEST_CLI :=SA1->A1_EST
+	    xCGC_CLI :=SA1->A1_CGC
+	    xINSC_CLI:=SA1->A1_INSCR
+	    xTRAN_CLI:=SA1->A1_TRANSP
+	    xSUFRAMA :=SA1->A1_SUFRAMA
+	    xCALCSUF :=SA1->A1_CALCSUF
+      endif
+
+      dbSelectArea("SA4")
+      dbSetOrder(1)
+      dbSeek(xFilial()+SF2->F2_TRANSP)
+      xNOME_TRANSP :=SA4->A4_NOME
+      xEND_TRANSP  :=SA4->A4_END
+      xMUN_TRANSP  :=SA4->A4_MUN
+      xEST_TRANSP  :=SA4->A4_EST
+      xVIA_TRANSP  :=SA4->A4_VIA
+      xTEL_TRANSP  :=SA4->A4_TEL
+
+
+      dbSelectArea("SE1")
+      dbSetOrder(1)
+      xPARC_DUP  :={}
+      xVENC_DUP  :={}
+      xVALOR_DUP :={}
+      xDUPLICATAS:=IIF(dbSeek(xFilial()+xSERIE+xNUM_DUPLIC, .T. ), .T. , .F. )
+
+      while !eof() .and.  SE1->E1_NUM==xNUM_DUPLIC .and.  xDUPLICATAS== .T. 
+         If !("NF" $ SE1->E1_TIPO)
+            dbSkip()
+            Loop
+         Endif
+         AADD(xPARC_DUP ,SE1->E1_PARCELA)
+         AADD(xVENC_DUP ,SE1->E1_VENCTO)
+         AADD(xVALOR_DUP,SE1->E1_VALOR)
+         dbSkip()
+      EndDo
+
+      dbSelectArea("SF4")
+      DbSetOrder(1)
+      dbSeek(xFilial()+xTES[1])
+      xNATUREZA:=SF4->F4_TEXTO
+
+
+      Imprime()
+
+
+
+
+
+      IncRegua()
+
+      dbSelectArea("SF2")
+      dbSkip()
+
+   EndDo
+
+
+
+
+
+dbSelectArea("SF2")
+Retindex("SF2")
+dbSelectArea("SD2")
+Retindex("SD2")
+Set( 20, "SCREEN" )
+
+If aReturn[5] == 1
+   Set( 24, "" )
+   dbcommitAll()
+   ourspool(wnrel)
+Endif
+
+MS_FLUSH()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Static Function VerImp()
+
+If aReturn[5]==2
+
+   nOpc       := 1
+
+   While .T. 
+
+      SetPrc(0,0)
+      dbCommitAll()
+
+      IF MsgYesNo("Fomulario esta posicionado ? ")
+	 	 nOpc := 1
+	   ElseIF MsgYesNo("Tenta Novamente ? ")
+		 nOpc := 2
+	   Else
+		nOpc := 3
+	  Endif
+
+      Do Case
+	    Case nOpc==1
+	      lContinua:= .T. 
+	      Exit
+	    Case nOpc==2
+	      Loop
+	    Case nOpc==3
+	      lContinua:= .F. 
+	      Return
+      EndCase
+   End
+
+Endif
+
+Return
+
+
+
+
+
+
+
+
+
+
+
+
+
+Static Function IMPDET()
+
+nTamDet :=10
+
+wQTD2   :=0
+wVALMERC:=0.00
+wUNIT   :=0.00
+wconta  :=0
+wunid   :=" "
+wDESC   :=" "
+xproduto:=" "
+
+
+dbSelectArea("SD2")
+dbSetOrder(3)
+dbSeek(xFilial()+xNUM_NF+xSERIE)
+
+while !eof() .and.  SD2->D2_DOC==xNUM_NF .and.  SD2->D2_SERIE==xSERIE
+
+      If SD2->D2_SERIE == mv_par03
+
+         if wconta==0
+            xproduto:=d2_cod
+            wconta  :=1
+         endif
+
+         If xproduto == d2_cod
+            wQTD2   :=wQTD2+SD2->D2_QUANT
+            wVALMERC:=wVALMERC+SD2->D2_TOTAL
+            wUNIT   :=SD2->D2_PRCVEN
+
+            dbSelectArea("SC6")
+            dbSetOrder(1)
+            dbSeek(xFilial()+SD2->D2_PEDIDO+SD2->D2_ITEMPV+xproduto)
+            if ! eof()
+               wunid:=SC6->C6_UM
+               wDESC:=alltrim(SC6->C6_DESCRI)
+            endif
+         Endif
+      endif
+
+
+      dbselectarea("SD2")
+      dbskip()
+
+
+      if eof() .or.  xproduto <> d2_cod .or.  SD2->D2_DOC<>xNUM_NF .or.  SD2->D2_SERIE<>xSERIE
+         if wQTD2 >0
+            PrintOut(Li,004,wQTD2,"@r 99,999.99")
+            PrintOut(Li,016,wunid,)
+
+            PrintOut(Li,020,wDESC,)
+            PrintOut(Li,096,round(wUNIT,2),"@r 9,999,999.99")
+            PrintOut(Li,120,wVALMERC,"@r 99,999,999.99")
+
+            Li:=Li+1
+            wQTD2   :=0
+            wunid   :=" "
+            wVALMERC:=0.00
+            wUNIT   :=0.00
+            wconta  :=0
+            wDESC   :=" "
+         endif
+      endif
+
+Enddo
+
+Return
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Static Function MENSOBS()
+
+nTamObs:=65
+
+PrintOut(Li,020,UPPER(SUBSTR(xMENSAGEM,1,nTamObs)),)
+If len(xMENSAGEM) > 65
+ Li:=Li+1
+ PrintOut(Li,020,UPPER(SUBSTR(xMENSAGEM,66,nTamObs)),)
+Endif
+If len(xMENSAGEM) > 131
+ Li:=Li+1
+ PrintOut(Li,020,UPPER(SUBSTR(xMENSAGEM,132,nTamObs)),)
+EndIf
+
+Return
+
+
+
+
+
+
+
+
+
+
+
+
+
+Static Function DUPLIC()
+
+IF LEN(XPARC_DUP)==1
+   PrintOut(Li,020,"Cond. Pgto "+xDESC_PAG,)
+   Li +=1
+
+   PrintOut(Li,020,XVENC_DUP[1],)
+   PrintOut(Li,036,XVALOR_DUP[1],"@E 99,999,999.99")
+ENDIF
+IF LEN(XPARC_DUP)==2
+   Li +=1
+
+   PrintOut(Li,020,XVENC_DUP[2],)
+   PrintOut(Li,036,XVALOR_DUP[2],"@E 99,999,999.99")
+ENDIF
+IF LEN(XPARC_DUP)==3
+   Li +=1
+
+   PrintOut(Li,020,XVENC_DUP[3],)
+   PrintOut(Li,036,XVALOR_DUP[3],"@E 99,999,999.99")
+ENDIF
+IF LEN(XPARC_DUP)==4
+   Li +=1
+
+   PrintOut(Li,020,XVENC_DUP[4],)
+   PrintOut(Li,036,XVALOR_DUP[4],"@E 99,999,999.99")
+ENDIF
+
+RETURN
+
+
+
+
+
+
+
+
+
+
+
+
+
+Static Function Imprime()
+
+
+
+PrintOut(00,000,chr(15),)
+
+
+
+
+
+
+PrintOut(02,90,xNATUREZA,)
+PrintOut(04,90,"ASSIST. TECNICA",)
+PrintOut(06,90,xEMISSAO,)
+
+
+PrintOut(08,15,xNOME_CLI,)
+PrintOut(09,15,xEND_CLI+" - "+xBAIRRO,)
+PrintOut(10,15,xMUN_CLI,)
+PrintOut(10,87,xEST_CLI,)
+PrintOut(10,105,xCEP_CLI,"@R 99999-999")
+
+If !EMPTY(xCGC_CLI)
+   PrintOut(11,15,xCGC_CLI,"@R 99.999.999/9999-99")
+Else
+   PrintOut(11,15," ",)
+Endif
+
+PrintOut(12,15,xINSC_CLI,)
+
+Li:=15
+ImpDet()
+Li+=1
+MENSOBS()
+If xVALINSS <> 0
+ Li+=2
+ PrintOut(Li,020,"RETENCAO PARA SEGURIDADE SOCIAL 11% "+TRANSFORM(xVALINSS,"@E 999,999,999.99"),)
+EndIf
+Li:=35
+DUPLIC()
+
+
+
+PrintOut(40,001,chr(14),)
+PrintOut(41,120,xVALOR_MERC,"@E@Z 999,999,999.99")
+PrintOut(42,001,chr(15),)
+
+
+
+PrintOut(51,000,CHR(18),)
+
+SetPrc(0,0)
+
+Return( .t. )

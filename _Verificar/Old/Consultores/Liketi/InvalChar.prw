@@ -1,0 +1,56 @@
+#include "protheus.ch"
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณInvalChar บAutor  ณMแrcio Lins         บ Data ณ  06/05/12   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณ Invalida caracteres restritos da SEFAZ (NFE 2.0)           บฑฑ
+ฑฑบ          ณ                                                            บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ Cavanna                                                    บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+// cod: '  - 39
+// cod: "  - 34
+// cod: &  - 38
+// cod: <  - 60
+// cod: >  - 62
+	
+User Function InvalChar(cContent)
+	
+	Local aInvalChars   := {}
+	Local aInvalAscii   := {}
+	Local aContentChr	:= {}
+	Local cMvInvChars   := AllTrim(getMv("MV_XBLKLST"))
+	Local bRet			:= .T.
+	
+	cContent := Iif(empty(cContent), "Produto Cobriato de endroxol", cContent)
+	
+	// tratamento dos parametros, caracteres identificados com nใo vแlidos
+	aInvalChars := StrTokArr(Iif(empty(cMvInvChars),'";&;<;>;'+"'",cMvInvChars), ";")
+	
+	nCntY := Len(aInvalChars)
+	
+	For nY := 1 To nCntY
+	
+		nRetTemp := At(aInvalChars[nY], cContent)
+		
+		If nRetTemp > 0
+		
+		     bRet := .F.
+		     
+		EndIf
+	
+	Next nY
+	
+	If !bRet
+	
+		Alert("Aten็ใo: Caracteres invalidos foram encontrados, por favor retire todos os caracteres especiais como acentos e sinais de pontua็ใo")
+		
+	EndIf	
+	 
+Return bRet

@@ -1,0 +1,196 @@
+#Include "rwmake.ch"
+#Include "topconn.ch"
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณCARSD3SC2 บAutor  ณMicrosiga           บ Data ณ  02/08/12   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณ                                                            บฑฑ
+ฑฑบ          ณ                                                            บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ AP                                                         บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+User Function CARSD3C2()
+
+Local cPerg := "CASD3SC201"
+
+PutSx1(cPerg,"01","Data de  ?","","","mv_ch1","D",8,0,0,"G","","","","","mv_par01","","","","","","","","","","","","","","","","",,,,"")
+PutSx1(cPerg,"02","Data ate ?","","","mv_ch2","D",8,0,0,"G","","","","","mv_par02","","","","","","","","","","","","","","","","",,,,"")
+PutSx1(cPerg,"03","Op de    ?","","","mv_ch3","C",13,0,0,"G","","","","","mv_par03","","","","","","","","","","","","","","","","",,,,"")
+PutSx1(cPerg,"04","Op ate   ?","","","mv_ch4","C",13,0,0,"G","","","","","mv_par04","","","","","","","","","","","","","","","","",,,,"")
+
+If !Pergunte(cPerg,.T.)
+	Return
+Endif
+
+bBlocoZ1    := { |lEnd| CARSD3C2() }
+
+MsAguarde(bBlocoZ1,"Aguarde","Processando registros tabela SD3->Mov.Internos",.F.)
+
+Return
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณCARSD3C2  บAutor  ณMicrosiga           บ Data ณ  02/08/12   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณ                                                            บฑฑ
+ฑฑบ          ณ                                                            บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ AP                                                        บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+Static Function CARSD3C2()
+
+CriaTRB1()
+
+_cQuery := " SELECT * FROM "+RetSqlName("SD3")+" SD3 (NOLOCK) "
+_cQuery += " WHERE SD3.D3_FILIAL = '"+xFilial("SD3")+"' AND SD3.D_E_L_E_T_ = ' ' "
+_cQuery += " AND SD3.D3_EMISSAO BETWEEN '"+Dtos(mv_par01)+"' AND '"+Dtos(mv_par02)+"' "
+_cQuery += " AND SD3.D3_OP BETWEEN '"+mv_par03+"' AND '"+mv_par04+"' "
+
+If Select("QUESD3") > 0
+	dbCloseArea()
+EndIf
+
+TCQUERY _cQuery NEW ALIAS "QUESD3"
+
+_nReg:= 0
+ProcRegua()
+dbSelectarea("QUESD3")
+dbGotop()
+While !Eof()
+	_aAreaSD3 := GetArea()
+	
+	_cCodigo := Rtrim(QUESD3->D3_OP)
+	
+	_nReg++
+	
+	MsProcTxt( "OP: "+QUESD3->D3_OP+" -> Prod: "+QUESD3->D3_COD)
+	
+	dbSelectArea("TRB1")
+	dbSetOrder(1)
+	RecLock("TRB1",.T.)
+	TRB1->FILIAL     := xFilial("SD3")
+	TRB1->TM         := QUESD3->D3_TM
+	TRB1->TIPO       := QUESD3->D3_TIPO
+	TRB1->COD        := QUESD3->D3_COD
+	TRB1->EMISSAO    := Stod(QUESD3->D3_EMISSAO)
+	TRB1->UM         := QUESD3->D3_UM
+	TRB1->QUANT      := QUESD3->D3_QUANT
+	TRB1->CUSTO1     := QUESD3->D3_CUSTO1
+	TRB1->CF         := QUESD3->D3_CF
+	TRB1->OP         := QUESD3->D3_OP
+	TRB1->DESC       := GetAdvFVal("SB1","B1_DESC",xFilial("SB1")+QUESD3->D3_COD,1)
+	TRB1->LOCPAD     := QUESD3->D3_LOCAL
+	TRB1->DTREALFIM  := GetAdvFVal("SC2","C2_DATRF",xFilial("SC2")+_cCodigo,1)
+	MsUnLock()
+	
+	RestArea(_aAreaSD3)
+	dbSkip()
+	
+EndDo
+
+
+dbSelectArea( "TRB1") 
+
+_cArq := "CASD3SC2.DBF" 
+
+Ferase("\SYSTEM\CASD3SC2.DBF")
+Ferase("\SYSTEM\CASD3SC2.XLS")
+
+COPY TO &_cArq
+__CopyFile("\SYSTEM\CASD3SC2.DBF","\SYSTEM\CASD3SC2.XLS")
+                  
+
+cPath := GETTEMPPATH()
+If Right( AllTrim(cPath), 1 ) != "\"
+   cPath += "\"
+Endif
+
+CpyS2T("\SYSTEM\CASD3SC2.XLS", cPath, .T.)
+
+dbSelectArea( "TRB1") 
+dbCloseArea()
+
+dbSelectArea("QUESD3")
+dbCloseArea()
+
+ApMsgInfo("Termino","Info")
+
+If !ApOleClient( 'MsExcel' )
+	MsgStop( 'MS-Excel nao instalado' )
+	Ferase( cPath+"CASD3SC2.XLS" )
+	Return( Nil )
+EndIf
+
+oExcelApp := MsExcel():New()
+oExcelApp:WorkBooks:Open(cPath+"CASD3SC2.XLS" )
+oExcelApp:SetVisible(.T.)
+
+Ferase("\SYSTEM\CASD3SC2.DBF")
+Ferase("\SYSTEM\CASD3SC2.XLS")
+
+
+Return
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณCriaTRB1   บAutor  ณMicrosiga           บ Data ณ  02/08/12   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDesc.     ณCria TRB1                                                    บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ AP                                                         บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+*/
+Static Function CriaTRB1()
+
+//+----------------------------------------------------------
+//| Cria o arquivo Temporario - TRB1
+//+----------------------------------------------------------
+aStru := {}
+aTam:=TamSX3("D3_FILIAL")
+aAdd(aStru,{ "FILIAL"   ,"C",aTam[1],aTam[2] } )
+aTam:=TamSX3("D3_TM")
+aAdd(aStru,{ "TM"   ,"C",aTam[1],aTam[2] } )
+aTam:=TamSX3("D3_TIPO")
+aAdd(aStru,{ "TIPO"   ,"C",aTam[1],aTam[2] } )
+aTam:=TamSX3("D3_EMISSAO")
+aAdd(aStru,{ "EMISSAO"     ,"D",aTam[1],aTam[2] } )
+aTam:=TamSX3("D3_COD")
+aAdd(aStru,{ "COD"     ,"C",aTam[1],aTam[2] } )
+aTam:=TamSX3("D3_UM")
+aAdd(aStru,{ "UM"   ,"C",aTam[1],aTam[2] } )
+aTam:=TamSX3("D3_QUANT")
+aAdd(aStru,{ "QUANT"   ,"N",aTam[1],aTam[2] } )
+aTam:=TamSX3("D3_CUSTO1")
+aAdd(aStru,{ "CUSTO1"   ,"N",aTam[1],aTam[2] } )
+aTam:=TamSX3("D3_CF")
+aAdd(aStru,{ "CF"   ,"C",aTam[1],aTam[2] } )
+aTam:=TamSX3("D3_OP")
+aAdd(aStru,{ "OP"   ,"C",aTam[1],aTam[2] } )
+aTam:=TamSX3("B1_DESC")
+aAdd(aStru,{ "DESC"   ,"C",aTam[1],aTam[2] } )
+aTam:=TamSX3("D3_LOCAL")
+aAdd(aStru,{ "LOCPAD"   ,"C",aTam[1],aTam[2] } )
+aTam:=TamSX3("C2_DATRF")
+aAdd(aStru,{ "DTREALFIM" ,"D",aTam[1],aTam[2] } )
+
+_cArqTRB1 := Criatrab(aStru,.T.)
+dbUseArea(.T.,,_cArqTRB1,"TRB1",.F.,.F.)
+
+IndRegua("TRB1",_cArqTRB1,"FILIAL+COD",,,"Criando Indice ...")
+
+Return

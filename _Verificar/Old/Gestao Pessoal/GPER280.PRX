@@ -1,0 +1,409 @@
+#INCLUDE "FIVEWIN.CH"
+#INCLUDE "GPER280.CH"
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡…o    ³ GPER280  ³ Autor ³ Wiliam                ³ Data ³ 30/01/96 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡„o ³ Impressao de Cheques                                       ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³         ATUALIZACOES SOFRIDAS DESDE A CONSTRU€AO INICIAL.             ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Programador ³ Data   ³ BOPS ³  Motivo da Alteracao                     ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Mauro      ³12/01/99³Proth ³Tirar o Resource Process                  ³±±
+±±³ Mauro      ³28/01/99³------³ Antes do incio da Impressao SetPrc().    ³±±
+±±³ Kleber     ³22/02/99³XXXXXX³ Verificar Semana na somat¢ria das Verbas.³±±
+±±³ Kleber     ³27/05/99³XXXXXX³ SetColor() somente no DOS.               ³±±
+±±³ Emerson    ³18/11/99³25102A³ Ao Gravar Filial Verifica se o Arquivo   ³±±
+±±³            |        ³      ³ Esta Compartilhado.                      ³±±
+±±³ Emerson    ³18/11/99³19712A³ Alteracao Para Possibilitar a Impressao  ³±±
+±±³            |        ³      ³ de Cheque para Complemento de Rescisao.  ³±±
+±±³ Emerson    ³06/01/00³22954A³ Alteracao Para Possibilitar a Impressao  ³±±
+±±³            |        ³      ³ de Cheque para Valores Extras.           ³±±
+±±³ Marinaldo  |17/05/00³003584³ Imprimir Apenas o que foi Selecionado nos³±±
+±±³            |        ³      ³ Parametros e impedir que Cheques ja Grava³±±
+±±³            |        ³      ³ dos no SEF sejam Duplicados.             ³±±
+±±³ Marinaldo  |17/05/00³003987³ Inclusao da Funcao PreparePrint() para  o³±±
+±±³            |        ³      ³ PROTHEUS.                                ³±±
+±±³ Marinaldo  |27/07/00³------³ Retirada Dos e Validacao Filial/Acessos  ³±±
+±±³ Mauro      |22/11/00³------³ Colocado a SetPrint p/Sel.Porta e consid.³±±
+±±³            |        ³      ³ Pensão da 1o.Parc. para Cheque.          ³±±
+±±³ Emerson GR.|06/12/00³005808³ Inclusao de Ponto de Entrada antes da    ³±±
+±±³            |		³      ³ impressao do cheque (GP280CHQ). 	      ³±±
+±±³ Emerson    ³27/04/01³------³Ajustes para tratar a pensao alimenticia a³±±
+±±³            ³--------³------³partir do cadastro de beneficiarios(novo) ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß/*/
+Function gper280()
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Define Variaveis Locais do Programa                          ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+Local oDlg1
+Local aSays     :={ }, aButtons:= { } //<== arrays locais de preferencia
+Local cDesc1	:= STR0002 //"Este programa imprime os cheques com o valor liquido a receber"
+Local cDesc2	:= STR0003 //"dos funcionarios."
+Local cString	:="SRA"				//alias do arquivo principal (Base)
+Local aOrd		:= {}               //Ordem do Relatorio
+
+STATIC nColVlr
+STATIC nLin1Ext
+STATIC nCol1Ext
+STATIC nLin2Ext
+STATIC nCol2Ext
+STATIC nLinFav
+STATIC nColFav
+STATIC nLinDat
+STATIC nColVir
+STATIC cExt
+STATIC nCasas  := 0
+STATIC nColAno := 0
+STATIC nTamChq := 0
+STATIC nTamExt
+STATIC nTamLin
+STATIC cValor
+STATIC nSalto
+
+Private cCadastro := OemtoAnsi(STR0001)	//"Impress„o de Cheques"
+Private nOpca     := 0
+
+/*
+ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+³ Define Variaveis Private(Basicas)							  ³
+ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ*/
+Private aReturn		:= {STR0016, 1,STR0017, 2, 2, 1, "",1 }	//"Zebrado"###"Administra‡„o"
+Private nomeprog	:="Gper280"
+Private nLastKey	:= 0
+Private cPerg		:="GPR280"
+
+/*
+ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+³ Variaveis Utilizadas na funcao IMPR 					   ³
+ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ*/
+Private TITULO		:= OemToAnsi( STR0001 )	//"Impressao de Cheque"
+Private AT_PRG		:= nomeprog
+Private nTamanho	:= "M"
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Verifica as perguntas selecionadas                           ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+pergunte("GPR280",.F.)
+
+/*
+ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+³ Envia controle para a funcao SETPRINT						   ³
+ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ*/
+wnrel:="GPR280"													//Nome Default do relatorio em Disco
+wnrel:=SetPrint(cString,wnrel,cPerg,@TITULO,cDesc1,cDesc2,,.F.,aOrd,,nTamanho,,.F.)
+
+IF nLastKey = 27
+	Return
+EndIF
+
+SetDefault(aReturn,cString)
+
+IF nLastKey = 27
+	Return
+EndIF
+
+RptStatus( {|lEnd| GPR280PROCESSA(@lEnd,wnRel,cString)}, TITULO )
+
+Return( NIL )
+
+                               
+*-------------------------------*
+Static Function GPR280PROCESSA(lEnd,WnRel,cString)
+*-------------------------------*
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Define Variaveis Locais do Programa                          ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+Local aCodFol		:= {}
+Local aInfo			:= {}
+Local aValBenef     := {}
+Local cFilialAnt	:= Space(2)
+Local cFilGravar	:= Space(2)
+Local nBusca
+Local nValor
+Local nOrdem
+Local cComConta
+Local cBanco
+Local cAgencia
+Local cConta
+Local cExclui		:= ""
+Local nCntP
+
+/*
+ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+³ Variaveis de Acesso do Usuario                               ³
+ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ*/
+Private cAcessaSR1	:= &( " { || " + ChkRH( "GPER280" , "SR1" , "2" ) + " } " )
+Private cAcessaSRA	:= &( " { || " + ChkRH( "GPER280" , "SRA" , "2" ) + " } " )
+Private cAcessaSRC	:= &( " { || " + ChkRH( "GPER280" , "SRC" , "2" ) + " } " )
+Private cAcessaSRG	:= &( " { || " + ChkRH( "GPER280" , "SRG" , "2" ) + " } " )
+Private cAcessaSRH	:= &( " { || " + ChkRH( "GPER280" , "SRH" , "2" ) + " } " )
+Private cAcessaSRI	:= &( " { || " + ChkRH( "GPER280" , "SRI" , "2" ) + " } " )
+Private cAcessaSRR	:= &( " { || " + ChkRH( "GPER280" , "SRR" , "2" ) + " } " )
+
+PRIVATE titulo:=STR0012		//"Emiss„o de Cheques em Formul rio Cont¡nuo"
+Private nTotDel := 0
+Private lComp   := .T.
+Private lLayOut := .F.
+Private nLinVlr := 0
+Private cBenef
+Private cNumCheq
+Private lTeste	:= .F.		//--Variavel usada ImpCheq
+/*
+ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+³Bloco que definira a Consistencia da Parametrizacao dos Intervalos sele³
+³cionados nas Perguntas De? Ate? para o Skip/Loop.                      ³
+ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ*/
+cExclui := cExclui + "(RA_FILIAL	< cFilDe    .or. RA_FILIAL  > cFilAte    ).or."
+cExclui := cExclui + "(RA_MAT		< cMatDe    .or. RA_MAT     > cMatAte    ).or." 
+cExclui := cExclui + "(RA_NOME		< cNomDe    .or. RA_NOME    > cNomAte    ).or." 
+cExclui := cExclui + "(RA_CC		< cCcDe     .or. RA_CC      > cCcAte     ).or." 
+cExclui := cExclui + "!(			 	RA_SITFOLH $ cSituacao				 )"
+
+cExclui := &( "{||" + cExclui + "}" )
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Recebe as Perguntas Selecionadas                             ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+lAdianta   := If(mv_par01 == 1,.T.,.F.)
+lFolha     := If(mv_par02 == 1,.T.,.F.)
+lPrimeira  := If(mv_par03 == 1,.T.,.F.)
+lSegunda   := If(mv_par04 == 1,.T.,.F.)
+lFerias    := If(mv_par05 == 1,.T.,.F.)
+lRescisao  := If(mv_par06 == 1,.T.,.F.)
+lExtras    := If(mv_par07 == 1,.T.,.F.)
+nOrdem     := mv_par08
+nLiqVer    := mv_par09
+cVerba     := mv_par10
+dGerResDe  := mv_par11
+dGerResAte := mv_par12
+Semana     := mv_par13
+cComConta  := If(mv_par14 == 1,"C",(If(mv_par14 == 2,"S","A")))
+cFilDe     := mv_par15
+cFilAte    := mv_par16
+cCCDe      := mv_par17
+cCCAte     := mv_par18
+cMatDe     := mv_par19
+cMatAte    := mv_par20
+cNomDe	   := mv_par21
+cNomAte    := mv_par22
+cSituacao  := mv_par23
+cBanco     := mv_par24
+cAgencia   := mv_par25
+cConta     := mv_par26
+cNumCheq   := mv_par27
+dDataDe    := mv_par28
+dDataAte   := mv_par29
+nFunBenAmb := mv_par30  // 1-Funcionarios  2-Beneficiarias  3-Ambos
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Se o Banco/Agencia/Conta nao estiverem Cadastrados           ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+IF !SA6->( dbSeek( xFilial("SA6")+cBanco+cAgencia+cConta ) )
+	Help(" ",1,"BCONOEXIST")
+	Return
+EndIF
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Define se devera ser impresso Funcionarios ou Beneficiarios  ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+dbSelectArea( "SRQ" )
+lImprFunci  := ( nFunBenAmb # 2 )
+lImprBenef  := ( nFunBenAmb # 1 .And. FieldPos( "RQ_BCDEPBE" ) # 0 .And. FieldPos( "RQ_CTDEPBE" ) # 0 )
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Informa a nao existencia dos campos de bco/age/conta corrente³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+If nFunBenAmb # 1 .And. !lImprBenef
+	fAvisoBC()
+	Return .F.
+Endif
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Procura primeiro funcionario                                 ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+dbSelectArea( "SRA" )
+If nOrdem = 1
+	dbSetOrder( 1 )
+	dbSeek( cFilDe + cMatDe , .T. )
+Elseif nOrdem = 2
+	dbSetOrder( 2 )
+	dbSeek( cFilDe + cCcDe + cMatDe , .T. )
+Elseif nOrdem = 4
+	dbSetOrder( 8 )
+	dbSeek( cFilDe + cCcDe + cNomDe , .T. )
+Else
+	dbSetOrder( 3 )
+	dbSeek( cFilDe + cNomDe , .T. )
+Endif
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Se ja Existir Numero de Cheque no SEF                        ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+dbSelectArea("SEF")
+dbSetOrder(1)
+IF (dbSeek(IF(Empty(xFilial("SEF")),xFilial("SEF"),SRA->RA_FILIAL)+cBanco+cAgencia+cConta+cNumCheq))
+	Help( " ",1,"A460CHEQUE")
+    Return
+EndIF
+dbSelectArea("SRA")
+
+//-- Preparar a Impressora 
+aDriver := LEDriver()
+SetPrc(000,000)
+If aReturn[4] == 1  // Comprimido
+	@ 0,0 PSAY &(if(nTamanho=="P",aDriver[1],if(nTamanho=="G",aDriver[5],aDriver[3])))
+Else					  // Normal
+	@ 0,0 PSAY &(if(nTamanho=="P",aDriver[2],if(nTamanho=="G",aDriver[6],aDriver[4])))
+Endif
+
+dbSelectArea( "SRA" )
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Carrega Regua de Processamento                               ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+SetRegua(SRA->(RecCount()))
+
+Begin Sequence
+	WHILE !EOF()
+	
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Movimenta Regua de Processamento                             ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		IncRegua()
+
+		If lEnd
+			@Prow()+1,0 PSAY cCancel
+			Exit
+		Endif
+
+
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Zera valor do liquido e pensao                               ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		nValor    := 0
+		aValBenef := {}
+
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Carrega codigos da folha                                     ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		If SRA->RA_FILIAL # cFilialAnt
+			If !FP_CODFOL(@aCodFol,SRA->RA_FILIAL) .Or. !fInfo(@aInfo,SRA->RA_FILIAL)
+				Exit
+			Endif
+			cFilialAnt := SRA->RA_FILIAL
+		Endif
+        /*
+		ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+        ³ Consiste o De / Ate e Situacao da Folha                      ³
+		ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ*/
+		IF SRA->( Eval( cExclui ) )
+			dbSelectArea('SRA')
+			dbSkip()
+			Loop
+		EndIF   
+
+		/*
+		ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		³Consiste Filiais e Acessos                                             ³
+		ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ*/
+		IF !( SRA->RA_FILIAL $ fValidFil() ) .or. !Eval( cAcessaSRA )
+			dbSelectArea("SRA")
+		   	dbSkip()
+	       	Loop
+		EndIF
+
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Consiste conta deposito salario                              ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		IF (cComConta = "C" .And. SRA->RA_CTDEPSA = SPACE(LEN(SRA->RA_CTDEPSA))) .Or.;
+		   (cComConta = "S" .And. SRA->RA_CTDEPSA # SPACE(LEN(SRA->RA_CTDEPSA)))
+			dbSkip()
+			Loop
+		Endif
+
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Busca os valores de Liquido e Pensao                         ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		fBuscaLiq(@nValor,@aValBenef,aCodFol,If(nLiqVer==1,Nil,cVerba),.T.)
+
+		cTipo := If(lAdianta,"ADI",If(lFolha,"FOL",If(lPrimeira,"131",;
+		         If(lSegunda,"132",If(lFerias,"FER",If(lRescisao,"RES","EXT"))))))
+
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Consiste se existe liquido a ser gerado                      ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+        cFilGravar := If(Empty(xFilial("SEF")),xFilial("SEF"),SRA->RA_FILIAL)
+        
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Inclui o funcionario no array para emissao do cheque         ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		If lImprFunci
+			Aadd(aValBenef, {  SRA->RA_NOME, "", "", "", nValor } )
+		EndIf
+        
+        For nCntP := 1 To Len(aValBenef)
+        	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Verifica valor e banco/agencia dos beneficiarios			 ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	   		If aValBenef[nCntP,5] > 0
+				RecLock( "SEF" , .T. )
+				SEF->EF_FILIAL  := cFilGravar
+				SEF->EF_NUM     := cNumCheq
+				SEF->EF_TIPO    := cTipo
+				SEF->EF_BANCO   := cBanco
+				SEF->EF_AGENCIA := cAgencia
+				SEF->EF_BENEF   := aValBenef[nCntP,1]
+				SEF->EF_VALOR   := aValBenef[nCntP,5]
+				SEF->EF_FORNECE := SRA->RA_MAT
+				SEF->EF_CONTA   := cConta
+				SEF->EF_DATA    := dDataBase
+	            dbSelectArea("SEF")
+				MsUnlock()
+	
+	    		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³ Ponto de Entrada antes da Impressao de Cheque                ³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	            If ExistBlock("GP280CHQ")
+					ExecBlock("GP280CHQ",.F.,.F.)
+	            EndIf
+		
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³ Impressao do Cheque                                          ³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				IF !ImpCheq(cBanco,cAgencia,cConta,.T.,cFilGravar)
+					Exit
+				EndIF
+			EndIf
+	    Next nCntP
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Proximo Funcionario                                          ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		dbSelectArea( "SRA" )
+		dbSkip()
+	Enddo
+End Sequence
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Termino do relatorio                                         ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+dbSelectArea( "SRA" )
+Set Filter to
+dbSetOrder(1)
+Set Device To Screen
+If aReturn[5] = 1
+	Set Printer To
+	Commit
+	ourspool(wnrel)
+Endif
+MS_FLUSH()
+
+Return
+
+Static Function GPR280Ok()
+Return (MsgYesNo(OemtoAnsi(STR0014),OemtoAnsi(STR0015)))	//"Confirma configura‡„o dos parƒmetros?"###"Aten‡„o"

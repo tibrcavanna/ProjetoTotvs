@@ -1,0 +1,8 @@
+Static STR0001 := "Este programa tem como objetivo imprimir relatorio "
+Static STR0002 := "demonstrativo dos status das notas fiscais de saida "
+Static STR0003 := "Demonstrativo Status NF Saida"
+Static STR0004 := "Zebrado"
+Static STR0005 := "Administracao"
+Static STR0006 := "Filial Num Nf    Serie Dt Emissao  Dt Cancelamento Cliente Loja Nome                           UF Chave Nfe                                    Status"
+Static STR0007 := "Dados nao encontrados" 
+Static STR0008 := "*** CANCELADO PELO OPERADOR ***"

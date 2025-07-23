@@ -1,0 +1,36 @@
+#include "rwmake.ch"      
+
+User Function Hextra()    
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Declaracao de variaveis utilizadas no programa atraves da funcao    ³
+//³ SetPrvt, que criara somente as variaveis definidas pelo usuario,    ³
+//³ identificando as variaveis publicas do sistema utilizadas no codigo ³
+//³ Incluido pelo assistente de conversao do AP5 IDE                    ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+SetPrvt("FHORAS1")
+
+// Horas extras normais
+fHoras1:=FbuscaPd("997","H")
+
+If fHoras1 > 60   // 100 %
+    //FGeraVerba("117",(FHoras1 - 60) * SalHora * 2,(FHoras1 - 60),,,"H","I",,,,.T.) 
+    FGeraVerba("117",(FHoras1 - 60) * SalHora * 2,(FHoras1 - 60),,,"H",,,,,.T.)
+    Fhoras1 := 60
+Endif
+If FHoras1 > 40   // 80 %
+   FGeraVerba("116",Salhora * (FHoras1 - 40) * 1.8,(FHoras1 - 40),,,"H",,,,,.T.)
+   Fhoras1 := 40
+Endif
+If FHoras1 > 25   // 60 %
+   FGeraVerba("115",(FHoras1 - 25) * SalHora * 1.6,(FHoras1 - 25),,,"H",,,,,.T.)
+   Fhoras1 := 25
+Endif
+If FHoras1 > 00   // 50%
+   FGeraVerba("114",(FHoras1) * SalHora * 1.5,(FHoras1),,,"H",,,,,.T.)
+   Fhoras1 := 00
+Endif
+
+Return(nil)     
+

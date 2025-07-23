@@ -1,0 +1,28 @@
+#Include 'rwmake.ch'
+#Include 'Protheus.ch'
+#INCLUDE "TOTVS.CH"
+//_____________________________
+
+User Function MT103EXC()
+
+lRet := .t.
+
+If lRet
+	
+	DbSelectArea("SZ3")
+	DbSetOrder(1)
+	DbSeek(xFILIAL("SZ3")+SF1->F1_DOC+SF1->F1_SERIE+SF1->F1_FORNECE+SF1->F1_LOJA)
+	IF FOUND()
+		
+		WHILE !EOF() .AND. SZ3->Z3_DOC+SZ3->Z3_SERIE+SZ3->Z3_FORNECE+SZ3->Z3_LOJA = SF1->F1_DOC+SF1->F1_SERIE+SF1->F1_FORNECE+SF1->F1_LOJA
+			recLock("SZ3",.f.)
+			dbDelete()
+			Msunlock()
+			dbskip()
+		Enddo
+	ENDIF
+	
+ENDIF
+
+Return
+

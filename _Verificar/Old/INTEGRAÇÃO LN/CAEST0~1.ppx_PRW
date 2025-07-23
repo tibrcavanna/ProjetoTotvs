@@ -1,0 +1,79 @@
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\protheus.ch"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\Dialog.ch"
+#line 28 "protheus.ch"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\Font.ch"
+#line 29 "protheus.ch"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\PTMenu.ch"
+#line 31 "protheus.ch"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\Print.ch"
+#line 33 "protheus.ch"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\Colors.ch"
+#line 35 "protheus.ch"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\Folder.ch"
+#line 37 "protheus.ch"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\msobject.ch"
+#line 38 "protheus.ch"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\VKey.ch"
+#line 42 "protheus.ch"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\WinApi.ch"
+#line 44 "protheus.ch"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\FWCommand.ch"
+#line 47 "protheus.ch"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\FWCSS.CH"
+#line 50 "protheus.ch"
+#line 4 "e:\TOTVS1~3\MICROS~1\protheus\projeto\INTEGR~1\CAEST0~1.PRW"
+
+
+
+
+
+
+
+
+Function U_CAEST002()
+Local _aArea := getarea()
+Local _cSeqLN := ""
+Local _nSD1Rec := SD1->(recno())
+
+
+While .t. 
+
+	_cSeqLN := getsxenum("SD1","D1_SEQLN")
+	ConfirmSx8()
+
+	SD1->(dbOrderNickName("D1_SEQLN"))
+	if ! SD1->(dbSeek(xfilial("SD1")+_cSeqLN))
+		exit
+	Endif
+
+End
+
+SD1->(dbGoto(_nSD1Rec))
+SD1->D1_SEQLN := _cSeqLN
+
+
+
+RecLock("SZ3", .T. )
+
+dbSelectArea("SX3")
+dbSetOrder(1)
+dbSeek("SZ3")
+While ! SX3->(eof()) .and.  X3_ARQUIVO == "SZ3"
+
+	_cCampo := "SD1->D1_"+substr(X3_CAMPO,4,7)
+	_cCampo := alltrim(_cCampo)
+
+	if SZ3->( FieldPos(SX3->X3_CAMPO) ) > 0
+		SZ3->( FieldPut( SZ3->(FieldPos(SX3->X3_CAMPO)),&_cCampo) )
+	Endif
+
+	SX3->(dbSkip())
+
+End
+
+SZ3->(dbCommit())
+SZ3->(MsUnLock())
+
+
+RestArea(_aArea)
+Return

@@ -1,0 +1,64 @@
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\protheus.ch"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\Dialog.ch"
+#line 28 "protheus.ch"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\Font.ch"
+#line 29 "protheus.ch"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\PTMenu.ch"
+#line 31 "protheus.ch"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\Print.ch"
+#line 33 "protheus.ch"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\Colors.ch"
+#line 35 "protheus.ch"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\Folder.ch"
+#line 37 "protheus.ch"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\msobject.ch"
+#line 38 "protheus.ch"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\VKey.ch"
+#line 42 "protheus.ch"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\WinApi.ch"
+#line 44 "protheus.ch"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\FWCommand.ch"
+#line 47 "protheus.ch"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\FWCSS.CH"
+#line 50 "protheus.ch"
+#line 17 "e:\TOTVS1~3\MICROS~1\protheus\projeto\CONSUL~1\liketi\INVALC~1.PRW"
+
+
+
+
+
+
+Function U_InvalChar(cContent)
+
+	Local aInvalChars   := {}
+	Local aInvalAscii   := {}
+	Local aContentChr	:= {}
+	Local cMvInvChars   := AllTrim(getMv("MV_XBLKLST"))
+	Local bRet			:= .T. 
+
+	cContent := Iif(empty(cContent), "Produto Cobriato de endroxol", cContent)
+
+
+	aInvalChars := StrTokArr(Iif(empty(cMvInvChars),'";&;<;>;'+"'",cMvInvChars), ";")
+
+	nCntY := Len(aInvalChars)
+
+	For nY := 1 To nCntY
+
+		nRetTemp := At(aInvalChars[nY], cContent)
+
+		If nRetTemp > 0
+
+		     bRet := .F. 
+
+		EndIf
+
+	next
+
+	If !bRet
+
+		Alert("Atenção: Caracteres invalidos foram encontrados, por favor retire todos os caracteres especiais como acentos e sinais de pontuação")
+
+	EndIf
+
+Return bRet

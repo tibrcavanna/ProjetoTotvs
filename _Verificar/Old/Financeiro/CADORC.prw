@@ -1,0 +1,7 @@
+#include "rwmake.ch"        // incluido pelo assistente de conversao do AP5 IDE em 24/07/01
+
+User Function CADORC()
+
+AXCadastro("SZA","Cadastro de Orcamento")
+
+Return()

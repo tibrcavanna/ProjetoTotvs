@@ -1,0 +1,27 @@
+// Pedido de Venda no Relatorio de Baixas a Receber
+cPed := ""
+cCli := SE5->E5_CLIFOR
+cLoj := SE5->E5_LOJA
+cPrf := SE5->E5_PREFIXO
+cNum := SE5->E5_NUMERO
+cPrc := SE5->E5_PARCELA
+cTip := SE5->E5_TIPO
+cFil := Alltrim(SE5->E5_FILORIG)
+//
+If SE5->E5_RECPAG == "P"
+   Return(cPed)
+Endif
+//
+If SE5->E5_RECPAG == "R" .And. Empty(Alltrim(SE5->E5_CLIENTE))
+   Return(cPed)
+Endif
+//
+If !Empty(cFil)
+   cPed := Posicione("SE1",2,cFil+cCli+cLoj+cPrf+cNum+cPrc+cTip,"E1_PEDIDO")
+Endif
+//
+If Empty(cPed) .And. !Empty(cFil)
+   cPed := Posicione("SD2",3,cFil+cNum+cPrf,"D2_PEDIDO")
+Endif
+//
+Return (cPed)

@@ -1,0 +1,32 @@
+Group Cavanna_Reinf
+   Version=7.0
+   VSSDB=
+   HasProperties=1
+   Properties
+      BeforeApply=
+      AfterApply=
+      Icon=
+      ID=
+      Version=
+      PalmName=
+      OutPut=
+   End
+   ProjectsCount=1
+   Project Reinf
+      FoldersCount=2
+      Folder Fontes
+         VSSPath=Fontes
+         FilesCount=2
+         File \TOTVS12\Protheus\Projeto\Reinf\ATUB1NCM.PRW
+             Type=T
+         End
+         File \TOTVS12\Protheus\Projeto\Reinf\VERB1NCM.PRW
+             Type=T
+         End
+      End
+      Folder Definições
+         VSSPath=Definições
+         FilesCount=0
+      End
+   End
+End

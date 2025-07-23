@@ -1,0 +1,68 @@
+Group Douglas
+   Version=7.0
+   VSSDB=
+   HasProperties=1
+   Properties
+      BeforeApply=
+      AfterApply=
+      Icon=
+      ID=
+      Version=
+      PalmName=
+      OutPut=
+   End
+   ProjectsCount=1
+   Project Novo Projeto
+      FoldersCount=2
+      Folder Fontes
+         VSSPath=Fontes
+         FilesCount=12
+         File \Protheus10\Projeto\Consultores\Douglas\CAVPED01.prw
+             Type=T
+         End
+         File \Protheus10\Projeto\Consultores\Douglas\CAVTIT02.PRW
+             Type=T
+         End
+         File \Protheus10\Projeto\Consultores\Douglas\CAVTIT03.prw
+             Type=T
+         End
+         File \Protheus10\Projeto\Consultores\Douglas\CAVETI02.PRW
+             Type=T
+         End
+         File \Protheus10\Projeto\Consultores\Douglas\CAVTIT04.prw
+             Type=T
+         End
+         File \Protheus10\Projeto\Consultores\Douglas\CAVTIT05.PRW
+             Type=T
+         End
+         File \Protheus10\Projeto\Consultores\Douglas\CAVETI03.PRW
+             Type=T
+         End
+         File \Protheus10\Projeto\Consultores\Douglas\CAVETI04.PRW
+             Type=T
+         End
+         File \Protheus10\Projeto\Consultores\Douglas\CAVETI05.PRW
+             Type=T
+         End
+         File \Protheus10\Projeto\Consultores\Douglas\CAVOP01.PRW
+             Type=T
+         End
+         File \Protheus10\Projeto\Consultores\Douglas\CAVD101.PRW
+             Type=T
+         End
+         File \Protheus10\Projeto\Consultores\Douglas\CAVD102.PRW
+             Type=T
+         End
+      End
+      Folder Definições
+         VSSPath=Definições
+         FilesCount=2
+         File \Protheus10\Projeto\RasteaOP2.prw
+             Type=T
+         End
+         File \Protheus10\Projeto\RasteaOP.prw
+             Type=T
+         End
+      End
+   End
+End

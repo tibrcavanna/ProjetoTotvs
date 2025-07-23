@@ -1,0 +1,114 @@
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\prothesp.ch"
+#line 2 "e:\TOTVS1~3\MICROS~1\protheus\projeto\SEQEMP~1.PRW"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\rwmake.ch"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\stdwin.ch"
+#line 14 "rwmake.ch"
+#line 4 "e:\TOTVS1~3\MICROS~1\protheus\projeto\SEQEMP~1.PRW"
+
+
+Function U_SeqEmpenho(cProduto,cOP)
+
+LOCAL nX
+LOCAL cCad  := OemToAnsi("Sequencia de Empenhos")
+LOCAL cAlias:= Alias()
+LOCAL oOk := LoadBitmap( GetResources(), "LBOK" )
+LOCAL oNo := LoadBitmap( GetResources(), "LBNO" )
+LOCAL oQual
+LOCAL cVar := "  "
+LOCAL nOpca
+LOCAL oDlgt
+LOCAL aSeqBack:={}
+LOCAL aSeq:={}
+Local lRunDblClick := .T. 
+Local nReg := 0
+Local bAcao
+Local cSeq :=""
+
+If empty(cProduto) .or.  Empty(cOP)
+  If Select("TEMP") > 0
+   TEMP->(dbCloseArea())
+  End
+  DeleteObject(oOk)
+  DeleteObject(oNo)
+  dbSelectArea(cAlias)
+  Return(cSeq)
+EndIf
+
+If Select("TEMP") > 0
+  TEMP->(dbCloseArea())
+End
+
+
+
+
+
+
+
+
+
+__execSql("TEMP"," SELECT R_E_C_N_O_ RECNO, D4_COD COMP,D4_QUANT QTD,D4_TRT SEQ FROM  "+RetSqlName('SD4')+" SD4 WHERE D4_COD =  "+___SQLGetValue(CPRODUTO)+" AND D4_OP =  "+___SQLGetValue(COP)+" AND D4_QUANT <> 0 AND SD4.D_E_L_E_T_= ' ' ORDER BY 4",{},.F.)
+
+dbSelectArea("TEMP")
+dbGotop()
+bAcao:= {|| nReg ++ }
+dbEval(bAcao,,{||!Eof()},,, .T. )
+dbSelectArea("TEMP")
+dbGotop()
+
+If nReg = 0
+  If Select("TEMP") > 0
+   TEMP->(dbCloseArea())
+  End
+  DeleteObject(oOk)
+  DeleteObject(oNo)
+  dbSelectArea(cAlias)
+  Return(cSeq)
+EndIf
+
+
+
+
+While !eof()
+   Aadd(aSeq,{ .f. ,TEMP->COMP,TRANSFORM(TEMP->QTD,"@E 999,999.99"),TEMP->SEQ})
+   dbSelectArea("TEMP")
+   dbSkip( )
+End
+
+aSeqBack := aClone(aSeq)
+aSeq :={}
+nOpca := 0
+
+oDlgt = MsDialog():New( 9, 0, 405, 400, OemToAnsi(cCad),,,.F.,,,,,,.T.,, ,.F. )
+
+
+ IW_Say(2.3,3,OemToAnsi("Sequencias Encontradas :")+transform(nReg,"@E 9,999"),,,,, )
+ oQual := VAR := cVar := TWBrowse():New( 1.0, .7, 150, 170,{|| { NOSCROLL } },{ "",OemToAnsi( "Componente"),OemToAnsi( "Quantidade"),OemToAnsi( "Sequencia")},,, ,,,,{|nRow,nCol,nFlags|(aSeqBack:=FA060Troca(oQual:nAt,aSeqBack),oQual:Refresh())},,,,,,,.F.,,.F.,,.F.,,, )
+oQual:SetArray(aSeqBack)
+oQual:bLine := { || {if(aSeqBack[oQual:nAt,1],oOk,oNo),aSeqBack[oQual:nAt,2],aSeqBack[oQual:nAt,3],aSeqBack[oQual:nAt,4]}}
+
+
+
+ SButton():New( 10, 166,1,{||  (nOpca:=1,oDlgt:End())}, oDlgt,.T.,,)
+ SButton():New( 22.5, 166,2,{||  oDlgt:End()}, oDlgt,.T.,,)
+
+oDlgt:Activate( oDlgt:bLClicked, oDlgt:bMoved, oDlgt:bPainted,.T.,,,, oDlgt:bRClicked, )
+
+IF nOpca == 1
+  aSeq := Aclone(aSeqBack)
+End
+
+
+
+cSeq :=""
+For nX := 1 To Len(aSeq)
+	If aSeq[nX,1]
+		cSeq := aSeq[nX,4]
+	End
+next
+
+DeleteObject(oOk)
+DeleteObject(oNo)
+
+dbSelectArea(cAlias)
+
+Return(cSeq)

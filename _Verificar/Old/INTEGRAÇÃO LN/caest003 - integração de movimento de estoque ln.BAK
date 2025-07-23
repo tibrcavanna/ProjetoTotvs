@@ -1,0 +1,138 @@
+#INCLUDE "PROTHEUS.CH"
+
+//__________________________________________________
+//POR : LUIS HENRIQUE - LESTE SYSTEMA
+// EM : 08/08/2014
+//OBJ : PROGRAMA DE IMPORTAÇÃO DE MOVIMENTAÇÕES DE ESTOQUE PELA TABELA FRONTEIRA SZ5
+//__________________________________________________
+
+User Function CAEST003()
+
+	Local _lErro      := .F.
+	Local _cDescErro:= ""
+	Local _cLinha     := ""
+
+	Local _cProduto
+	Local _cLocal
+	Local _nQuant
+	Local _lConout := .t.
+	Local aOpenTable      := {"SZ5","SD3","SD5","SB2","SB8"}
+	Local _cFilial
+	Private _cAlias := GetNextAlias()
+
+
+	RpcClearEnv()
+	RPCSetType(3)
+	RPCSetEnv("01","01","","","","",aOpenTable) // Abre todas as tabelas.
+
+	_cFilial := xfilial("SZ5")
+
+	BeginSql Alias _cAlias
+
+	%noparser%
+
+	column Z5_QUANT as Numeric(12,2)
+	column Z5_EMISSAO as Date         
+
+	Select *, SZ5.R_E_C_N_O_ AS RECNOSZ5
+	From %Table:SZ5% SZ5
+	Where %NotDel% AND
+	Z5_FILIAL = %Exp:_cFilial% AND
+	Z5_SITUAC = 'N'
+
+	EndSql
+
+
+
+	//         TES 001 - DEVOLUÇÃO DA PRODUÇÃO
+	//Utilizar TES 002 - APONTAMENTO DE PRODUÇÃO
+	//		   TES 501 - REQUISIÇÃO PARA PRODUÇÃO 
+
+
+	conout("Inicio de importação de dados da tabela SZ5 - Movimento de estoque")
+
+	(_cAlias)->(dbGotop())
+	While ! (_cAlias)->(eof())
+
+		//______________________________ UNIDADE DE MEDIDA
+
+		dbSelectArea("SAH")
+		dbSetOrder(1)
+		if ! dbSeek(xfilial("SAH")+alltrim((_cAlias)->(Z5_UM))  )
+
+			_MsgErro := "Unidade de Medida "+(_cAlias)->(Z5_UM)+ " não encontrado na tabela SAH"
+
+		Else
+
+
+			_lRet := Internos((_cAlias)->Z5_TM ,;
+			(_cAlias)->Z5_DOC ,;
+			(_cAlias)->Z5_EMISSAO,;
+			(_cAlias)->Z5_COD,;
+			(_cAlias)->Z5_UM ,;
+			(_cAlias)->Z5_QUANT,;			"01",;
+			(_cAlias)->Z5_CC,;
+			(_cAlias)->Z5_ITEMCTA,;
+			(_cAlias)->Z5_OP  ) 
+
+		Endif
+
+		(_cAlias)->(dbSkip())
+	End
+
+	conout("Fim de importação de dados da tabela SZ5 - Movimento de estoque")
+
+	(_cAlias)->(dbCloseArea())
+	RpcClearEnv() // Limpa o environment
+
+Return
+
+
+//______________________
+//GERA MOVIMENTAÇÃO INTERNA
+//________________________
+Static Function Internos(_cTM,  _cDoc,  _dEmissao, _cProd, _cUM,  _nQuant, _cLocal, _cCC, _cItemCta, _cOP )
+	Local _aTAB_SD3 := {}
+
+	lMsHelpAuto   := .T.
+	lMsErroAuto   := .F.
+
+	_aTabSD3 := {}
+
+	aAdd(_aTabSD3, {"D3_TM"			,_cTM		,NIL})
+	aAdd(_aTabSD3, {"D3_DOC"		,_cDoc		,NIL})
+	aAdd(_aTabSD3, {"D3_EMISSAO"	,dDataBase	,NIL})
+	aAdd(_aTabSD3, {"D3_COD"		,_cProd		,NIL})
+	aAdd(_aTabSD3, {"D3_UM"			,_cUM		,NIL})
+	aAdd(_aTabSD3, {"D3_QUANT"		,_nQuant	,NIL})
+	aAdd(_aTabSD3, {"D3_LOCAL" 		,_cLocal	,NIL})
+	aAdd(_aTabSD3, {"D3_CC" 		,_cCC		,NIL})
+	aAdd(_aTabSD3, {"D3_OP" 		,_cOP		,NIL})
+	aAdd(_aTabSD3, {"D3_ITEMCTA" 	,_cItemCta	,NIL})
+
+	_aTmp := U_SLVetSx3(_aTABSD3,"SD3")
+	_aTABSD3 := {}
+	_aTABSD3 := aClone(_aTmp)
+
+	if _cTM == "002"
+		MsExecAuto({|x,y| MATA250(x,y)}, _aTabSD3, 3)
+	Else                                              
+		MsExecAuto({|x,y| MATA240(x,y)}, _aTabSD3, 3)
+	Endif    
+
+	If lMsErroAuto
+		_cErro := MostraErro()
+		conout(_cErro)
+	Else
+
+		dbSelectArea("SZ5")
+		dbGoTo( (_cAlias)->RECNOSZ5  )
+		Reclock("SZ5",.F.)
+		SZ5->Z5_SITUAC 	:= "Y"
+		SZ5->Z5_NUMSEQ  := SD3->D3_NUMSEQ	
+		SZ5->(MsUnlock())
+
+	Endif
+
+Return(! lMsErroAuto)
+

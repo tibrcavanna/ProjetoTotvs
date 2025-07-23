@@ -1,0 +1,142 @@
+#Include "rwmake.ch"
+#Include "topconn.ch"
+
+User Function COMPARQ()
+
+dbUseArea(.T.,,"\SYSTEM\CONTA.DBF","TRB",.F.,.F.) // CLIENTES
+cIndex := CriaTrab(nil,.f.)
+cKey   := "TRB->CODIGO"
+IndRegua("TRB",cIndex,cKey,,,"Selecionando registros...")
+
+Processa({||COMPARQa()})
+
+Return
+
+Static Function COMPARQa()
+
+_cQuery := " SELECT * FROM "+RetSqlName("SB7")+" "
+_cQuery += " WHERE B7_DOC = 'CAV311211' AND D_E_L_E_T_ = '' "
+If Select("QUESB7") > 1
+	dbCloseArea()
+EndIf
+
+TCQUERY _cQuery NEW ALIAS "QUESB7"
+
+_nRegNtem := 0     
+_nRegtem := 0     
+_cMsg     := ""
+_cMsg1    := ""
+
+While !Eof()
+	_aAreaSB7 := GetArea()
+	_cCodigo := QUESB7->B7_COD
+	
+	dbSelectArea("SB1")
+	dbSetOrder(1)
+	dbSeek(xFilial("SB1")+_cCodigo)
+	
+	dbSelectArea("TRB")
+	dbSetOrder(1)
+	If !dbSeek(_cCodigo)
+		If !dbSeek(Subs(_cCodigo,2,len(_cCodigo)-1))
+			_nRegNtem++
+			_cMsg += StrZero(_nRegNTem,9)+";"+QUESB7->B7_COD+";"+SB1->B1_DESC+";"+CHR(13)+CHR(10)
+		EndIf
+	Else
+		
+		If (QUESB7->B7_QUANT <> TRB->QUANTIDADE)
+			_nRegtem++
+			_cMsg1 += StrZero(_nRegTem,9)+";"+QUESB7->B7_COD+";"+SB1->B1_DESC+";"+";"+Str(QUESB7->B7_QUANT,16,6)+";"+Str(TRB->QUANTIDADE,16,6)+CHR(13)+CHR(10)
+		EndIf
+		
+	EndIf
+	
+	RestArea(_aAreaSB7)
+	dbSkip()
+	
+EndDo
+
+MemoWrite("NAOENCO.TXT",_cMsg)
+MemoWrite("QTDIVER.TXT",_cMsg1)
+
+
+dbSelectArea("QUESB7")
+dbCloseArea()
+
+dbSelectArea("TRB")
+dbCloseArea()
+
+
+Alert("Termino")
+
+Return
+
+
+/*/
+Static Function CriaTRB
+
+//+----------------------------------------------------------
+//| Cria o arquivo Temporario - TRB
+//+----------------------------------------------------------
+aStru := {}
+aTam:=TamSX3("F2_FILIAL")
+aAdd(aStru,{ "FILIAL"   ,"C",aTam[1],aTam[2] } )
+aTam:=TamSX3("F2_VEND1")
+aAdd(aStru,{ "VEND"     ,"C",aTam[1],aTam[2] } )
+aTam:=TamSX3("A3_NOME")
+aAdd(aStru,{ "NOMEVEN"   ,"C",aTam[1],aTam[2] } )
+aTam:=TamSX3("B1_GRUPO")
+aAdd(aStru,{ "GRUPO"   ,"C",aTam[1],aTam[2] } )
+aTam:=TamSX3("B1_COD")
+aAdd(aStru,{ "PRODUTO"   ,"C",aTam[1],aTam[2] } )
+aTam:=TamSX3("B1_XCODOLD")
+aAdd(aStru,{ "CODOLD"   ,"C",aTam[1],aTam[2] } )
+aTam:=TamSX3("B1_DESC")
+aAdd(aStru,{ "DESC"   ,"C",aTam[1],aTam[2] } )
+aTam:=TamSX3("D2_DOC")
+aAdd(aStru,{ "DOC"   ,"C",aTam[1],aTam[2] } )
+aTam:=TamSX3("D2_QUANT")
+aAdd(aStru,{ "QUANT"   ,"N",aTam[1],aTam[2] } )
+aTam:=TamSX3("D2_PRCVEN")
+aAdd(aStru,{ "PRCVEN"   ,"N",aTam[1],aTam[2] } )
+aTam:=TamSX3("D2_TOTAL")
+aAdd(aStru,{ "TOTAL"   ,"N",aTam[1],aTam[2] } )
+aTam:=TamSX3("D2_TES")
+aAdd(aStru,{ "TES"   ,"C",aTam[1],aTam[2] } )
+aTam:=TamSX3("D2_QTDEDEV")
+aAdd(aStru,{ "QTDEDEV"   ,"N",aTam[1],aTam[2] } )
+aTam:=TamSX3("D2_VALDEV")
+aAdd(aStru,{ "VALDEV"   ,"N",aTam[1],aTam[2] } )
+aTam:=TamSX3("F2_COND")
+aAdd(aStru,{ "COND"   ,"C",aTam[1],aTam[2] } )
+aAdd(aStru,{ "PZMEDIO"   ,"N", 10, 02} )   //Total dias pz. medio
+aAdd(aStru,{ "PZMEDCX"   ,"N", 14, 02} )   //Pz. medio caixa acumulado em dias
+aAdd(aStru,{ "TPZMEDCX"   ,"N", 14, 02} )   //QTDE X PZ.MEDIO -> PZMEDIO*PZMEDCX)
+
+aAdd(aStru,{ "QTDDEV"   ,"N", 14, 02} )   //QTDE X PZ.MEDIO -> PZMEDIO*PZMEDCX)
+aAdd(aStru,{ "VALORDEV" ,"N", 14, 02} )   //QTDE X PZ.MEDIO -> PZMEDIO*PZMEDCX)
+
+aTam:=TamSX3("D2_DESCON")
+aAdd(aStru,{ "DESCON"   ,"N",aTam[1],aTam[2] } )
+aAdd(aStru,{ "PARTIC"   ,"N", 6, 02} )   //Participacao na venda
+aAdd(aStru,{ "VALBONI"  ,"N", 14, 02} )  //VLR.  Bonificacao
+aAdd(aStru,{ "QTDBONI"  ,"N", 14, 02} )  //QTDE. Bonificacao
+aAdd(aStru,{ "QTPVABEV"  ,"N", 10, 02} )  //Qtde. vendida em aberto VIRADA
+aAdd(aStru,{ "QTBNABEV"  ,"N", 10, 02} )  //Qtde. Bonus   em aberto VIRADA
+aAdd(aStru,{ "QTENTDIA" ,"N", 10, 02} )  //Qtde. pvs. que entrou no dia
+aAdd(aStru,{ "QTPVABEM"  ,"N", 10, 02} )  //Qtde. vendida em aberto MES
+aAdd(aStru,{ "QTBNABEM"  ,"N", 10, 02} )  //Qtde. Bonus   em aberto MES
+aAdd(aStru,{ "VLPVABEM"  ,"N", 14, 02} )  //Vlr. total aberto Mes.
+aAdd(aStru,{ "DTEMIS"    ,"D",  8, 02} )  //Vlr. total aberto Mes.
+
+_cArqTRB := Criatrab(aStru,.T.)
+dbUseArea(.T.,,_cArqTRB,"TRB",.F.,.F.)
+
+If nOrdem == 1  // Resumo Geral
+	IndRegua("TRB",_cIndTRB,"FILIAL+GRUPO+PRODUTO",,,"Criando Indice ...")
+Else  // Por Vendedor
+	IndRegua("TRB",_cIndTRB,"FILIAL+VEND+GRUPO+PRODUTO",,,"Criando Indice ...")
+Endif
+
+Return
+/*/

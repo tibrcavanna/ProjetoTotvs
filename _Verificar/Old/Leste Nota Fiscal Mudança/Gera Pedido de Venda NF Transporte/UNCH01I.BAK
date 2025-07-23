@@ -1,0 +1,905 @@
+#include "protheus.ch"
+#include "rwmake.ch"
+
+/*/
+_____________________________________________________________________________
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¦¦+-----------------------------------------------------------------------+¦¦
+¦¦¦Programa  ¦ UNCH01I   ¦ Autor ¦ Fábrica ERPBR    ¦   Data  ¦ 20/10/16  ¦¦¦
+¦¦+----------+------------------------------------------------------------¦¦¦
+¦¦¦Descricao ¦ Importação de dados do cartão de crédito corporativo via	  ¦¦¦
+¦¦¦          ¦ arquivo extensão csv com layout pré-definido.			  ¦¦¦
+¦¦+----------+------------------------------------------------------------¦¦¦
+¦¦¦Uso       ¦ Exclusivo UNICHARM  										  ¦¦¦
+¦¦+----------+------------------------------------------------------------¦¦¦
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+/*/
+
+User Function UNCH01I()
+
+Local lOk   := .F.
+Local lEnd	:= .F.
+Local oFnt1 := TFont():New("Tahoma",,18,,.T.)
+Local oFnt2 := TFont():New("Tahoma",,15,,.T.)
+Local oFnt3 := TFont():New("Tahoma",,14,,.F.)
+Private cArquivo       := Space(30)
+Private lOkFile        := .F.
+Private cEOL           := CHR(13)+CHR(10)
+Private nBytes         := 0
+Private nHandle        := 0
+Private cTable         := Nil
+Private cTabl2         := Nil
+Private cEOL           := CHR(13)+CHR(10)
+Private lMsErroAuto    := .F.
+Private lMsHelpAuto    := .T.
+Private lAutoErrNoFile := .T.
+
+Private oDlgUpd, oProcess, cArqCtb
+
+
+DEFINE MSDIALOG oDlgUpd FROM 001,001 TO 350,650 TITLE "Importação de Dados" OF oDlgUpd PIXEL
+
+@ 005,005 TO 030,320 LABEL "" OF oDlgUpd PIXEL
+oTitulo:= TSay():New(013,100,{||"Material Em Estoque"},oDlgUpd,,oFnt1,,,,.T.,CLR_BLACK,CLR_WHITE,300,020)
+oTitulo:CtrlRefresh()
+
+@ 045,005 TO 140,320 LABEL "" OF oDlgUpd PIXEL
+oText1:= TSay():New(050,010,{||"Esta rotina tem como objetivo fazer a importação dos Saldos em Estoque,"},oDlgUpd,,oFnt2,,,,.T.,CLR_BLUE,CLR_WHITE,300,020)
+oText1:CtrlRefresh()
+
+oText2:= TSay():New(060,010,{||"de acordo com arquivo extensão 'csv' e layout pre-definido."},oDlgUpd,,oFnt2,,,,.T.,CLR_BLUE,CLR_WHITE,300,020)
+oText2:CtrlRefresh()
+
+//oText3:= TSay():New(070,010,{||"Os dados do título a pagar e lote contábil devem ser informados em 'Parâmetros'."},oDlgUpd,,oFnt2,,,,.T.,CLR_BLUE,CLR_WHITE,300,020)
+//oText3:CtrlRefresh()
+
+//oText4:= TSay():New(080,010,{||"Os lançamentos contábeis serão gerados a partir da configuração do LP '050'."},oDlgUpd,,oFnt2,,,,.T.,CLR_BLUE,CLR_WHITE,300,020)
+//oText4:CtrlRefresh()
+
+//oText5:= TSay():New(090,010,{||"Serão criados 'N' lançamentos a débito, totalizados em único lançamento a crédito,"},oDlgUpd,,oFnt2,,,,.T.,CLR_BLUE,CLR_WHITE,300,020)
+//oText5:CtrlRefresh()
+
+//oText6:= TSay():New(100,010,{||"juntamente com a geração do título a pagar para a operadora selecionada."},oDlgUpd,,oFnt2,,,,.T.,CLR_BLUE,CLR_WHITE,300,020)
+//oText6:CtrlRefresh()
+
+@ 150,005 BUTTON "Importa Planilha"  SIZE 070,015 FONT oDlgUpd:oFont ACTION Preparar()      OF oDlgUpd PIXEL
+@ 150,127 BUTTON "Gerar Pedidos" SIZE 070,015 FONT oDlgUpd:oFont ACTION MontaTela()           OF oDlgUpd PIXEL
+@ 150,250 BUTTON "Sair"   SIZE 070,015 FONT oDlgUpd:oFont ACTION oDlgUpd:End()              OF oDlgUpd PIXEL
+ACTIVATE MSDIALOG oDlgUpd CENTERED
+/*GERAPEDC5()*/
+Return
+
+/*/
+_____________________________________________________________________________
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¦¦+-----------------------------------------------------------------------+¦¦
+¦¦¦Função    ¦ Preparar  ¦ Autor ¦ Fabrica ERPBR    ¦ Data ¦  20/10/16	  ¦¦¦
+¦¦+-----------------------------------------------------------------------+¦¦
+¦¦¦Descriçäo ¦ Prepara o processamento principal.						  ¦¦¦
+¦¦+-----------------------------------------------------------------------+¦¦
+¦¦¦Uso       ¦ Exclusivo UNICHARM										  ¦¦¦
+¦¦+-----------------------------------------------------------------------+¦¦
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+/*/
+
+Static Function Preparar()
+
+cArquivo := cGetFile("Arquivos CSV|*.CSV|",OemToAnsi("Selecione o arquivo"))
+cArquivo := AllTrim(cArquivo)
+If !Empty(cArquivo)
+	If File(cArquivo)
+		If MsgYesNo("Arquivo a ser processado: "+cArquivo+"."+cEOL+"Deseja prosseguir ?","Aviso","INFO")
+			lOkFile := .T.
+		Endif
+	Else
+		MsgAlert("Arquivo não encontrado.")
+	Endif
+Else
+	MsgAlert("Arquivo não selecionado.")
+Endif
+
+
+If lOkFile
+	
+	If Select("DTF") > 0
+		DTF->(DbCloseArea())
+	Endif
+	
+	If Select("LOG") > 0
+		LOG->(DbCloseArea())
+	Endif
+	
+	_CriaTrab()
+	
+	nHandle := fOpen(cArquivo,2)
+	
+	If nHandle == -1
+		Alert("Problema na abertura do arquivo "+cArquivo+".")
+		Return
+	Endif
+	
+	If MsgYesNo("Confirma o processamento ?","Aviso","INFO")
+		
+		oProcess := MsNewProcess():New( { | lEnd | lOk := ProcImp() }, "Importando dados do Estoque  ", "Aguarde, processando ...", .F. )
+		oProcess:Activate()
+		oDlgUpd:End()
+	Endif
+	
+	fClose(nHandle)
+	LOG->(DbCloseArea())
+	DTF->(DbCloseArea())
+	
+Endif
+
+Return
+
+/*/
+_____________________________________________________________________________
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¦¦+-----------------------------------------------------------------------+¦¦
+¦¦¦Função    ¦ ProcImp  ¦ Autor  ¦ Fabrica ERPBR     ¦ Data ¦  20/10/16	  ¦¦¦
+¦¦+-----------------------------------------------------------------------+¦¦
+¦¦¦Descriçäo ¦ Processamento da importação.								  ¦¦¦
+¦¦+-----------------------------------------------------------------------+¦¦
+¦¦¦Uso       ¦ Exclusivo UNICHARM										  ¦¦¦
+¦¦+-----------------------------------------------------------------------+¦¦
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+/*/
+
+Static Function ProcImp()
+
+nTamArq := fFileSize(nHandle)
+oProcess:SetRegua1(nTamArq)
+
+While ( !Empty((cString := fReadFile(nHandle,nTamArq,0,@nBytes))) )
+	
+	oProcess:IncRegua1("Analisando transações no arquivo csv..")
+	
+	// Fim de Arquivo
+	If Len(cString) < 3
+		Exit
+	Endif
+	
+	nPosic  := 0
+	aLinha  := {}
+	cTxtLin := cString
+	While (!Empty(cTxtLin))
+		If (((nPosic := AT(";",cTxtLin)) > 0))
+			AAdd(aLinha,Substr(cTxtLin,1,nPosic-1))
+			cTxtLin := Stuff(cTxtLin,1,nPosic,"")
+		Else
+			AAdd(aLinha,Substr(cTxtLin,1,Len(AllTrim(cTxtLin))))
+			cTxtLin := Stuff(cTxtLin,1,Len(cTxtLin),"")
+		Endif
+	Enddo
+	
+	// Garante 24 posições
+	If Len(aLinha) == 22
+		AAdd(aLinha,"")
+		AAdd(aLinha,"")
+	ElseIf Len(aLinha) == 23
+		AAdd(aLinha,"")
+	Endif
+	
+	
+	// Estrutura de aLinha:
+	// [01] - Import Status
+	// [02] - Import Cod
+	// [03] - Import Message
+	// [04]	- Empresa
+	// [05] - Armazem
+	// [06] - Filler1
+	// [07] - Endereço
+	// [08] - Filler1
+	// [09] - Item
+	// [10] - Codigo Produto
+	// [11] - Descrição Produto
+	// [12] - Data de Estoque
+	// [13] - Zona Armaz.
+	// [14] - Custo Total
+	// [15] - Propr. local
+	// [16] - Filler4
+	// [17] - Estoque Disponivel
+	// [18] - UM1
+	// [19] - Bloquado
+	// [20] - UM2
+	// [21] - Alocado
+	// [22] - UM3
+	// [23] - Estoque por Ordm
+	// [24] - UM4
+	
+	If Len(aLinha) < 24
+		Alert("Estrutura do arquivo CSV inválida ("+AllTrim(STR(Len(aLinha)))+" posições).")
+		Return
+	Endif
+	
+	If Len(aLinha) > 0 .AND. Val(StrTran(aLinha[14],",",".")) <> 0
+		
+		// [05] - Armazem
+		// [07] - Endereco
+		// [10] - Codigo Produto
+		// [11] - Descrição Produto
+		// [14] - Custo Total
+		// [17] - Estoque Disponivel
+		
+		
+		cArmazem  := aLinha[05]
+		cEndereco := aLinha[07]
+		cProduto  := aLinha[09]
+		cDesProd  := Upper(aLinha[11])
+		nCusto    := Val(StrTran(aLinha[14],",","."))
+		nQtdEst   := Val(StrTran(aLinha[17],",",".")) // Valor da Transação
+		
+		
+		//	cCcusto := PadR(StrTran(aLinha[32],".",""),9) // C.Custo
+		
+		lTudoOk := .T.
+		
+		//If nCusto == 0
+		//	InputLog(cFuncId,cTraRef,nTraVlr,"Valor não informado.")
+		//lTudoOk := .F.
+		//	 Endif
+		If lTudoOk
+			InputLin(cEndereco,cProduto,cDesProd,nCusto,nQtdEst,cArquivo)
+		Endif
+		
+	Endif
+	
+Enddo
+
+DbSelectArea("LOG")
+If LOG->(RecCount()) > 0
+	MsgInfo("Foram encontradas inconsistências no arquivo 'csv'.")
+	u_ReportLog(cArquivo)
+	Return
+Endif
+
+u_ReportLog(cArquivo)
+
+Return()
+
+
+
+/*/
+_____________________________________________________________________________
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¦¦+-----------------------------------------------------------------------+¦¦
+¦¦¦Função    ¦ _CriaTrab ¦ Autor ¦ Fábrica ERPBR    ¦    Data  ¦ 20/10/16 ¦¦¦
+¦¦+----------+------------------------------------------------------------¦¦¦
+¦¦¦Descricao ¦ Cria arquivos temporarios.							   	  ¦¦¦
+¦¦+----------+------------------------------------------------------------¦¦¦
+¦¦¦Uso       ¦ Exclusivo UNICHARM										  ¦¦¦
+¦¦+----------+------------------------------------------------------------¦¦¦
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+/*/
+
+Static Function _CriaTrab()
+
+Local _aTmp := {}
+Local _aTm2 := {}
+
+Begin Transaction
+
+cQry2 :=""
+cQry2 := "DELETE  PA1010 "
+
+TCSQLEXEC(cQry2)
+
+If TCSQLExec(cQry2) <> 0
+	ApMsgAlert( AllTrim(TCSQLError()), 'Contate o administrador' )
+EndIf
+end Transaction
+
+
+AAdd ( _aTmp, {"LOG_LINLOG" , "C", 004, 00} )
+AAdd ( _aTmp, {"LOG_FUNCID" , "C", 020, 00} )
+AAdd ( _aTmp, {"LOG_TRAREF" , "C", 050, 00} )
+AAdd ( _aTmp, {"LOG_TRAVLR" , "N", 014, 02} )
+AAdd ( _aTmp, {"LOG_OBSERV" , "C", 200, 00} )
+cTable := CriaTrab(_aTmp,.T.)
+DbUseArea(.T.,"DBFCDX",cTable,"LOG",.T.,.F.)
+IndRegua("LOG",cTable,"LOG_LINLOG",,,"")
+
+AAdd ( _aTm2, {"TF_LINHA" , "C", 003, 00} )
+AAdd ( _aTm2, {"TF_CONTA" , "C", 010, 00} )
+AAdd ( _aTm2, {"TF_CC"    , "C", 009, 00} )
+AAdd ( _aTm2, {"TF_HIST"  , "C", 040, 00} )
+AAdd ( _aTm2, {"TF_VALOR" , "N", 016, 02} )
+cTabl2 := CriaTrab(_aTm2,.T.)
+DbUseArea(.T.,"DBFCDX",cTabl2,"DTF",.T.,.F.)
+IndRegua("DTF",cTabl2,"TF_LINHA",,,"")
+
+Return
+
+/*/
+_____________________________________________________________________________
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¦¦+-----------------------------------------------------------------------+¦¦
+¦¦¦Função    ¦ InputLog  ¦ Autor ¦ Fábrica ERPBR    ¦    Data  ¦ 20/10/16 ¦¦¦
+¦¦+----------+------------------------------------------------------------¦¦¦
+¦¦¦Descricao ¦ Insere registro invalido.								  ¦¦¦
+¦¦+----------+------------------------------------------------------------¦¦¦
+¦¦¦Uso       ¦ Exclusivo UNICHARM										  ¦¦¦
+¦¦+----------+------------------------------------------------------------¦¦¦
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+/*/
+
+Static Function InputLog(xFuncId,xTraRef,xTraVlr,xObserv)
+
+cLinLog := StrZero((LOG->(RecCount())+1),4)
+DbSelectArea("DTF")
+DbSetOrder(1)
+
+RecLock("LOG",.T.)
+LOG->LOG_LINLOG := cLinLog
+LOG->LOG_FUNCID := xFuncId
+LOG->LOG_TRAREF := xTraRef
+LOG->LOG_TRAVLR := xTraVlr
+LOG->LOG_OBSERV := xObserv
+MsUnLock()
+
+Return
+
+/*/
+_____________________________________________________________________________
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¦¦+-----------------------------------------------------------------------+¦¦
+¦¦¦Função    ¦ InputLin  ¦ Autor ¦ Fábrica ERPBR    ¦    Data  ¦ 20/10/16 ¦¦¦
+¦¦+----------+------------------------------------------------------------¦¦¦
+¦¦¦Descricao ¦ Insere registro valido.									  ¦¦¦
+¦¦+----------+------------------------------------------------------------¦¦¦
+¦¦¦Uso       ¦ Exclusivo UNICHARM										  ¦¦¦
+¦¦+----------+------------------------------------------------------------¦¦¦
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+/*/
+
+Static Function InputLin(xEndereco,xProduto,xDesProd,xCusto,xQtdEst,xArquivo)
+
+//cLinId := StrZero((DTF->(RecCount())+1),3)
+
+ 	
+	DbSelectArea("PA1")
+ 	RECLOCK("PA1",.T.)
+	PA1->PA1_FILIAL := "01"
+	PA1->PA1_COD    := SUBSTR(xProduto,2,15)
+	PA1->PA1_ENDERE := SUBSTR(xEndereco,1,6)
+  	PA1->PA1_QUANT := xQtdEst
+	PA1->PA1_DESC  := //xDesProd
+	PA1->PA1_CUSTO := xCusto / xQtdEst
+	PA1->PA1_PLANIL:= xArquivo
+	PA1->PA1_DTPLAN:= DATE()
+ 	MsUnLock()
+ 
+Return()
+
+/*/
+_____________________________________________________________________________
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¦¦+-----------------------------------------------------------------------+¦¦
+¦¦¦Programa  ¦ fReadFile ¦ Autor ¦ Fabrica ERPBR ¦ 	  Data ¦  20/10/16	  ¦¦¦
+¦¦+----------+------------------------------------------------------------¦¦¦
+¦¦¦Descricao ¦ Efetua a leitura do arquivo txt e retorna a linha lida.	  ¦¦¦
+¦¦+----------+------------------------------------------------------------¦¦¦
+¦¦¦Uso       ¦ Exclusivo UNICHARM										  ¦¦¦
+¦¦+----------+------------------------------------------------------------¦¦¦
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+/*/
+
+Static Function fReadFile(nHandle,xFileSize,xBytesRead,nBytes)
+
+Local nBytesRead := IIf(!((xBytesRead == 0) .Or. (xBytesRead == Nil)),xBytesRead,IIf(xFileSize < 1536,xFileSize,1536)) // Indica o numero de bytes a serem lidos
+Local cBuffer    := Space(nBytesread) // Guarda o conteudo lido
+Local nPosition  := 0 // Posicao do caracter 13 (return)
+Local nIncbytes  := Nil // Incremento de bytes 2 CHR(13) + CHR(10)
+Local xReturn    := Nil // Retorno da funcao
+
+If ( ((FREAD(nHandle,@cBuffer,nBytesRead) = nBytesRead) .Or. (!Empty(cBuffer))) )
+	// Verifica se procura o caracter 13 para identificar o registro
+	xReturn := Substr(cBuffer,1,IIf(((nPosition := AT(CHR(13),cBuffer)) > 0),(nPosition - 1),Len(cBuffer)))
+	// Verifica se incrementa bytes
+	nIncBytes := IIf(nPosition > 0,2,0)
+	// Bytes ja lidos somando os caracteres especiais
+	nBytes := (nBytes + (Len(xReturn) + nIncBytes))
+	// Retorna o descritor se necessario
+	FSEEK(nHandle,(-1 * ABS((Len(cBuffer) - (Len(xReturn) + nIncBytes)))),1)
+Endif
+
+Return(xReturn)
+
+/*/
+_____________________________________________________________________________
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¦¦+-----------------------------------------------------------------------+¦¦
+¦¦¦Programa  ¦ fFileSize ¦ Autor ¦ Fabrica ERPBR ¦ 	  Data ¦  20/10/16	  ¦¦¦
+¦¦+----------+------------------------------------------------------------¦¦¦
+¦¦¦Descricao ¦ Obtem o tamanho do arquivo texto.						  ¦¦¦
+¦¦+----------+------------------------------------------------------------¦¦¦
+¦¦¦Uso       ¦ Exclusivo UNICHARM										  ¦¦¦
+¦¦+----------+------------------------------------------------------------¦¦¦
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+/*/
+
+Static Function fFileSize(xHandle)
+
+Local nLength := FSEEK(xHandle,0,2)
+FSEEK(nHandle,0)
+
+Return(nLength)
+
+/*/
+_____________________________________________________________________________
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¦¦+-----------------------------------------------------------------------+¦¦
+¦¦¦Programa  ¦ ExtractErr ¦ Autor ¦ Fabrica ERPBR   ¦ Data ¦  09/11/16	  ¦¦¦
+¦¦+----------+------------------------------------------------------------¦¦¦
+¦¦¦Descricao ¦ Tratamento para extrair a mensagem de erro.				  ¦¦¦
+¦¦+----------+------------------------------------------------------------¦¦¦
+¦¦¦Uso       ¦ Exclusivo UNICHARM										  ¦¦¦
+¦¦+----------+------------------------------------------------------------¦¦¦
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+/*/
+
+User Function ExtractErr(aErro)
+
+Local cMensagem := ""
+Local _x
+
+For _x := 1 to Len(aErro)
+	If _x == 1
+		cMensagem += AllTrim(aErro[_x])
+		cMensagem := StrTran(cMensagem,CHR(13)+CHR(10),"")+". "
+	Endif
+	nPos := AT("< --",aErro[_x])
+	If nPos > 0
+		cMensagem += AllTrim(aErro[_x])
+		Exit
+	Endif
+Next _x
+
+Return(cMensagem)
+
+/*/
+_____________________________________________________________________________
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¦¦+-----------------------------------------------------------------------+¦¦
+¦¦¦Programa  ¦ ReportLog  ¦ Autor ¦ Fábrica ERPBR   ¦   Data  ¦ 02/11/16  ¦¦¦
+¦¦+----------+------------------------------------------------------------¦¦¦
+¦¦¦Descricao ¦ Impressão do log de ocorrências.							  ¦¦¦
+¦¦+----------+------------------------------------------------------------¦¦¦
+¦¦¦Uso       ¦ Exclusivo UNICHARM										  ¦¦¦
+¦¦+----------+------------------------------------------------------------¦¦¦
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+/*/
+
+User Function ReportLog(cArquivo)
+
+Local oReport
+
+oReport := ReportDef(cArquivo)
+
+If oReport == Nil
+	Return
+Endif
+
+oReport:PrintDialog()
+
+Return
+
+/*/
+_____________________________________________________________________________
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¦¦+-----------------------------------------------------------------------+¦¦
+¦¦¦Programa  ¦ ReportDef ¦ Autor ¦  Luis Brandini   ¦   Data  ¦ 02/11/16  ¦¦¦
+¦¦+----------+------------------------------------------------------------¦¦¦
+¦¦¦Descricao ¦ Executa impressao do relatorio.							  ¦¦¦
+¦¦+----------+------------------------------------------------------------¦¦¦
+¦¦¦Uso       ¦ Exclusivo UNICHARM										  ¦¦¦
+¦¦+----------+------------------------------------------------------------¦¦¦
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+/*/
+
+Static Function ReportDef(cArquivo)
+
+Local oReport
+Local oSection1
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Criacao do componente de impressao                                      ³
+//³                                                                        ³
+//³TReport():New                                                           ³
+//³ExpC1 : Nome do relatorio                                               ³
+//³ExpC2 : Titulo                                                          ³
+//³ExpC3 : Pergunte                                                        ³
+//³ExpB4 : Bloco de codigo que sera executado na confirmacao da impressao  ³
+//³ExpC5 : Descricao                                                       ³
+//³                                                                        ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+oReport := TReport():New("UNCH01I","Ocorrências do Arquivo CSV", , {|oReport| ReportPrint(oReport,cArquivo), "Este relatório irá imprimir as ocorrências da importação do arquivo CSV de dados do cartão de crédito corporativo."})
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Criacao da secao utilizada pelo relatorio                               ³
+//³                                                                        ³
+//³TRSection():New                                                         ³
+//³ExpO1 : Objeto TReport que a secao pertence                             ³
+//³ExpC2 : Descricao da seçao                                              ³
+//³ExpA3 : Array com as tabelas utilizadas pela secao. A primeira tabela   ³
+//³        sera considerada como principal para a seção.                   ³
+//³ExpA4 : Array com as Ordens do relatório                                ³
+//³ExpL5 : Carrega campos do SX3 como celulas                              ³
+//³        Default : False                                                 ³
+//³ExpL6 : Carrega ordens do Sindex                                        ³
+//³        Default : False                                                 ³
+//³                                                                        ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+oSection1 := TRSection():New(oReport,"Ocorrências do Arquivo CSV",{"LOG"},,.F.,.F.)
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Criacao da celulas da secao do relatorio                                ³
+//³                                                                        ³
+//³TRCell():New                                                            ³
+//³ExpO1 : Objeto TSection que a secao pertence                            ³
+//³ExpC2 : Nome da celula do relatório. O SX3 será consultado              ³
+//³ExpC3 : Nome da tabela de referencia da celula                          ³
+//³ExpC4 : Titulo da celula                                                ³
+//³        Default : X3Titulo()                                            ³
+//³ExpC5 : Picture                                                         ³
+//³        Default : X3_PICTURE                                            ³
+//³ExpC6 : Tamanho                                                         ³
+//³        Default : X3_TAMANHO                                            ³
+//³ExpL7 : Informe se o tamanho esta em pixel                              ³
+//³        Default : False                                                 ³
+//³ExpB8 : Bloco de código para impressao.                                 ³
+//³        Default : ExpC2                                                 ³
+//³                                                                        ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+TRCell():New(oSection1, "LINLOG", "LOG", "Linha"          , "@!" , 10, , { || LOG->LOG_LINLOG } )
+TRCell():New(oSection1, "FUNCID", "LOG", "Id Transação" , "@!" , 30, , { || LOG->LOG_FUNCID } )
+TRCell():New(oSection1, "TRAREF", "LOG", "Ref Transação"  , "@!" , 50, , { || LOG->LOG_TRAREF } )
+TRCell():New(oSection1, "TRAREF", "LOG", "Vlr Transação"  , "@E 99,999,999.99" , 30, , { || LOG->LOG_TRAVLR } )
+TRCell():New(oSection1, "OBSERV", "LOG", "Ocorrência"     , "@!" , 200, , { || LOG->LOG_OBSERV } )
+
+Return(oReport)
+
+/*/
+_____________________________________________________________________________
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¦¦+-----------------------------------------------------------------------+¦¦
+¦¦¦Programa  ¦ ReportPrint ¦ Autor ¦ Luis Brandini  ¦   Data  ¦ 02/11/16  ¦¦¦
+¦¦+----------+------------------------------------------------------------¦¦¦
+¦¦¦Descricao ¦ Executa impressao do relatorio.							  ¦¦¦
+¦¦+----------+------------------------------------------------------------¦¦¦
+¦¦¦Uso       ¦ Exclusivo UNICHARM										  ¦¦¦
+¦¦+----------+------------------------------------------------------------¦¦¦
+¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+/*/
+
+Static Function ReportPrint(oReport,cArquivo)
+
+Local oSection1 := oReport:Section(1)
+
+oReport:cRealTitle := "Log de ocorrências da importação csv | Cartão Corporativo | Arquivo "+cArquivo+"|"
+oReport:cTitle := "Log de ocorrências da importação csv | Cartão Corporativo | Arquivo "+cArquivo+"|"
+
+DbSelectArea("LOG")
+LOG->(DbGotop())
+If Eof()
+	RecLock("LOG",.T.)
+	LOG->LOG_LINLOG := "0001"
+	LOG->LOG_FUNCID := ""
+	LOG->LOG_TRAREF := ""
+	LOG->LOG_TRAVLR := 0.00
+	LOG->LOG_OBSERV := "Planilha "+cArquivo+" importada com sucesso, sem ocorrência de erros."
+	MsUnLock()
+Endif
+
+DbSelectArea("LOG")
+LOG->(DbGotop())
+oReport:SetMeter(LOG->(RecCount()))
+oSection1:Init()
+While !Eof()
+	
+	oReport:IncMeter()
+	
+	oSection1:PrintLine()
+	
+	DbSelectArea("LOG")
+	LOG->(DbSkip())
+	
+	If Eof()
+		oSection1:Finish()
+		oReport:ThinLine()
+	Endif
+	
+	DbSelectArea("LOG")
+Enddo
+
+Return
+
+/*/
+
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Programa  ³ BOLEBRAD ³ Autor ³ xxxxxxxxxxxxx         ³ Data ³          ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ IMPRESSAO DO BOLETO LASER   BRADESCO COM CODIGO DE BARRAS  ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Uso       ³ xxxxxx                                                     ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+
+Static Function GERAPEDC5()
+
+LOCAL   aCampos := {{"PA1_COD","Produto","@!"},{"PA1_DESC","Descrição","@!"},{"PA1_ENDERE","Endereço","@!"},{"PA1_QUANT","Quantidade","@E 9,999,999.99"},{"PA1_CUSTO","Custo Unit.","@E 9,999,999.99"}}
+LOCAL   nOpc       := 0
+LOCAL   aDesc      := {"","",""}
+Local cPerg	       := Padr("TIRAFLAG",10)
+
+PRIVATE Exec       := .F.
+PRIVATE cIndexName := ''
+PRIVATE cIndexKey  := ''
+PRIVATE cFilter    := ''
+PRIVATE cMarca     := GetMark()
+
+Private nomeprog 	:= "GERAPEDC5"
+
+Private nLastKey 	:= 0
+Private oPrint
+
+Public aMarked    := {}
+
+titulo   := " "
+cDesc1   := " "
+cDesc2   := ""
+cDesc3   := ""
+cString  := "PA1"
+
+lEnd     := .F.
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Variaveis tipo Private padrao de todos os relatorios         ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+cPerg	:=  "TIRAFLAG"
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Verifica as perguntas selecionadas                           ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+
+//AjustaSX1(cPerg)
+
+
+//If !Pergunte(cPerg,.T. )
+//	Return
+//Endif
+
+
+dbSelectArea("PA1")
+
+//cQuery := "PA1_COD    >= '" + MV_PAR01 + "' .And. PA1_COD    <= '" + MV_PAR02 + "'"
+//cQuery += "PA1_ENDERE >= '" + MV_PAR03 + "' .And. PA1_ENDERE <= '" + MV_PAR04 + "'"
+cQuery := "PA1_COD    >= ' ' .And. PA1_COD    <= 'ZZZZZZZZZZZZZZZZZZZZ' .and. "
+cQuery += "PA1_ENDERE >= ' ' .And. PA1_ENDERE <= 'ZZZZZZZZZZZZZZZ'"
+
+cArqTrab := CriaTrab("",.F.)
+IndRegua(cString,cArqTrab,"PA1_COD,PA1_ENDERE",,cQuery,"Selecionado Registros...")
+nIndD2 := RetIndex("PA1")
+If RDDNAME() != "TOPCONN"
+	dbSetIndex(cArqTrab+ordBagExt())
+ENDIF
+dbSelectArea("PA1")
+PA1->(dbGoTop())
+//If mv_par05 = 1
+@ 001,001 TO 400,700 DIALOG oDlg TITLE "Selecao de Produtos"
+@ 001,001 TO 170,350 BROWSE "PA1" MARK "PA1_OK"
+@ 180,310 BMPBUTTON TYPE 01 ACTION (Exec := .T.,Close(oDlg))
+@ 180,280 BMPBUTTON TYPE 02 ACTION (Exec := .F.,Close(oDlg))
+ACTIVATE DIALOG oDlg CENTERED
+//Else
+//	Exec       := .T.
+//EndIf
+dbGoTop()
+Do While !Eof()
+	//If mv_par05 = 1
+	If Marked("PA1_OK")
+		AADD(aMarked,.T.)
+	Else
+		AADD(aMarked,.F.)
+	EndIf
+	//Else
+	//	AADD(aMarked,.T.)
+	//Endif
+	dbSkip()
+EndDo
+dbGoTop()
+If Exec
+	Processa({|lEnd|MontaTela(aMarked)})
+Endif
+RetIndex("PA1")
+fErase(cIndexName+OrdBagExt())
+fErase(cArqTrab+ordBagExt())
+
+Return Nil
+
+******************************
+Static Function MontaTela()//MontaTela(aMarked)
+
+LOCAL i         := 1
+LOCAL nRec      := 0
+Public n := 0
+Private oProcess
+
+i:=1
+
+nRec := 0
+DbSelectArea("PA1")
+dbGoTop()
+Do While !EOF()
+	nRec := nRec + 1
+	dbSkip()
+EndDo
+dbGoTop()
+While PA1->(!EOF())
+	
+	
+	//BUSCA NOVO CODIGO DE PEDIDO
+	//===========================
+	DBSELECTAREA("SC5")
+	SC5->(DBSETORDER(01))
+	
+	//VARIAVEL QUE CONTROLA NUMERACAO
+	//-------------------------------
+	
+	
+	nSAVESX8 := GETSX8LEN()
+	
+	cPEDIDO := GETSXENUM("SC5","C5_NUM")
+	
+	//	cNumPed := STRZERO(val(SUBSTR(TIME(), 1, 2) + SUBSTR(TIME(), 4, 2)) + 1,5)
+	//	cPEDIDO := "X"+cNumPed
+	
+	ROLLBACKSX8()
+	
+	WHILE SC5->C5_NUM > cPEDIDO
+		WHILE (GETSX8LEN() > nSAVESX8)
+			CONFIRMSX8()
+		ENDDO
+		cPEDIDO := GETSXENUM("SC5","C5_NUM")
+	ENDDO
+	
+	//CARREGA CABEÇALHO DO PEDIDO DE VENDA
+	//------------------------------------
+	aSC5 :=  {}
+	
+	aadd(aSC5,{"C5_NUM"    	,cPEDIDO  	    	,NIL})
+	aadd(aSC5,{"C5_TIPO"	   ,'N'	        		,Nil})
+	aadd(aSC5,{"C5_CLIENTE"	,"000131"      	,Nil})
+	aadd(aSC5,{"C5_LOJACLI"	,"01"          	,Nil})
+	aadd(aSC5,{"C5_CLIENT"	,"000131"         ,Nil})
+	aadd(aSC5,{"C5_LOJAENT"	,"01"             ,Nil})
+	aadd(aSC5,{"C5_CONDPAG"	,"016"	         ,Nil})
+	
+	
+	_ITEM := "00"
+	_ContaPA1 := 1
+	//oProcess:SetRegua2(nRec)
+	aSC6 := {}
+	
+	While ( PA1->(!Eof()) .AND. _ContaPA1 <=590 /*.AND.  aMarked[i] */)
+		
+		//	oProcess:IncRegua2("Gerando Pedido de Vandas Mudança ..")
+		
+		dbSelectArea("SB1")
+		dbSetOrder(1)
+		If SB1->(dbSeek(xFilial("SB1")+PA1->PA1_COD))
+			_ITEM := Soma1(_ITEM)
+			aItens := {}
+			aadd(aItens,{"C6_ITEM"			,_ITEM    		   	            ,Nil})
+			//aadd(aItens,{"C6_NUM"			,cPEDIDO   		   	            ,Nil})
+			//aadd(aItens,{"C6_FILIAL"	   ,"01"     		   	            ,Nil})
+			aadd(aItens,{"C6_PRODUTO"		,PA1->PA1_COD		    		,Nil})
+			//aadd(aItens,{"C6_UM"		   	,PA1->PA1_UM						,Nil})
+			aadd(aItens,{"C6_QTDVEN"		,PA1->PA1_QUANT					,Nil})
+			aadd(aItens,{"C6_PRCVEN"		,PA1->PA1_CUSTO	,Nil})        
+		 //	aadd(aItens,{"C6_VALOR"			,PA1->PA1_CUSTO * PA1->PA1_QUANT , Nil})
+		  	aadd(aItens,{"C6_PRUNIT"		,PA1->PA1_CUSTO	,Nil})
+			aadd(aItens,{"C6_TES"			,"617" 				,Nil})
+		  //	aadd(aItens,{"C6_LOCAL"			,PA1->PA1_LOCPAD	,Nil})
+			//aadd(aItens,{"C6_ENTREG"		,dDataBase						,Nil})
+		  //	aadd(aItens,{"C6_DESCRI"		,PA1->PA1_DESC					,Nil})
+			
+			AAdd(aSC6,aItens)
+			
+			_ContaPA1++
+			
+		
+		ENDIF
+  		dbSelectArea("PA1")
+		
+		PA1->(dbSkip())
+	EndDo
+		lMsHelpAuto := .T.
+			lMsErroAuto := .F.
+	  		MsAguarde({||MSExecAuto({|x,y,z| MATA410(x,y,z)},aSC5,aSC6,3)},"Aguarde...","Gerando o pedido de venda "+cPEDIDO)
+			IF lMsErroAuto
+				RollBAckSx8()
+				MostraErro()
+				
+			EndIf
+	
+EndDo
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Efetua a Gravacao do Pedido de Venda                                    ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+
+Return nil
+
+
+/*/
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡…o    ³AjustaSX1 ³ Autor ³ Mary C. Hergert       ³ Data ³05/07/2006³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³Cria as perguntas necessarias a impressao do RPS            ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³MATR968
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+Static Function AjustaSX1(cPerg)
+
+Local 	aAreaSX1 := SX1->(GetArea())
+dbSelectArea("SX1")
+SX1->(dbSetOrder(1))
+
+If SX1->(dbSeek("TIRAFLAG  01"))
+	While ALLTRIM(SX1->X1_GRUPO) == "TIRAFLAG"
+		RecLock("SX1",.F.)
+		SX1->X1_CNT01:= " "
+		SX1->X1_CNT01:= " "
+		SX1->X1_CNT01:= " "
+		MsUnlock()
+		
+		SX1->(dbSkip())
+	EndDo
+	
+Else
+	aHelpPor := {}
+	aAdd(aHelpPor,"Informe o Produto Inicial")
+	PutSX1(cPerg, "01","Do Produto ","","","mv_ch1","C",15,0,0,"G","","SB1","","","mv_par01", ;
+	"","", "", "", "", "", "", "", "", "", "", "", "", "", "","",aHelpPor)
+	aHelpPor := {}
+	aAdd(aHelpPor,"Informe o Código do Produto Final ")
+	PutSX1(cPerg, "02","Até o Produto ","","","mv_ch2","C",3,0,0,"G","","SB1","","","mv_par02", ;
+	"","", "", "", "", "", "", "", "", "", "", "", "", "", "","",aHelpPor)
+	aHelpPor := {}
+	aAdd(aHelpPor,"Informe o Endereço Inicial  ")
+	PutSX1(cPerg, "03","Do Endereço  ","","","mv_ch3","C",15,0,0,"G","","SB1","","","mv_par03", ;
+	"","", "", "", "", "", "", "", "", "", "", "", "", "", "","",aHelpPor)
+	aHelpPor := {}
+	aAdd(aHelpPor,"Informe o Endereço Final ")
+	PutSX1(cPerg, "04","Até o Endereço","","","mv_ch4","C",15,0,0,"G","","SB1","","","mv_par04", ;
+	"","", "", "", "", "", "", "", "", "", "", "", "", "", "","",aHelpPor)
+	aHelpPor := {}
+	aAdd(aHelpPor,"Mostra Tela de Seleção  Sim ou Não")
+	PutSX1(cPerg,"05","Mostra Tela de Seleção S/N?","","", "mv_ch5","N",1,0,0,"C","", "", "", "", "mv_par05", ;
+	"Sim","Si", "Yes", "", "Não", "Não", "Not", "", "", "", "", "", "", "", "","",aHelpPor)
+Endif
+RestArea(aAreaSX1)
+Return(.T.)
+

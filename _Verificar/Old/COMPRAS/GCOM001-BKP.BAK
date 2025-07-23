@@ -1,0 +1,57 @@
+#INCLUDE "rwmake.ch"
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
+ฑฑบPrograma  ณGCOM001   บ Autor ณ Antonio Domingos   บ Data ณ  08/04/16   บฑฑ
+ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
+ฑฑบDescricao ณ Gatilho para Alterar ICMS do Simples Nacional              บฑฑ
+ฑฑบ          ณ                                                            บฑฑ
+ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
+ฑฑบUso       ณ Cavanna                                                    บฑฑ
+ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
+ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
+฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+/*/
+
+User Function GCOM001(nD1_PICM,CA100FOR,CLOJA,C103TIPO)
+
+//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
+//ณ Declaracao de Variaveis                                             ณ
+//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+Local cGETMV  := GETMV("MV_ALIQICM")
+Local lRet    := .T.
+Local cRegime := ""
+
+
+If C103TIPO $ "DB"
+	cRegime := Posicione("SA1",1,CA100FOR+CLOJA,"A1_SIMPNAC")
+Else
+	cRegime := Posicione("SA2",1,CA100FOR+CLOJA,"A2_SIMPNAC")
+EndIf
+
+If cRegime == "1"
+
+	Alert("Campo Aliquota de ICMS "+Str(nD1_PICM,5,2))
+	
+	If AT(alltrim(Str(nD1_PICM,5,2)),cGETMV) == 0
+	
+		cGETMV := Alltrim(cGETMV)+"/"+alltrim(Str(nD1_PICM,5,2))
+	
+	EndIf
+	
+	Alert("Param.Aliquota de ICMS "+cGETMV)
+	
+	PUTMV("MV_ALIQICM",cGETMV)
+	
+	cGETMV  := GETMV("MV_ALIQICM")
+	
+	Alert("Novo Param.Aliquota de ICMS "+cGETMV)
+Else
+	Alert("Altera็ใo de Aliquota permitida somente para Cliente ou Fornecedor do Simples Nacional")
+    lRet:=.F.
+EndIf
+
+
+Return(lRet)

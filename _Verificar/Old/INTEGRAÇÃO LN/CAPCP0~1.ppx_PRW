@@ -1,0 +1,175 @@
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\PROTHEUS.CH"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\Dialog.ch"
+#line 28 "PROTHEUS.CH"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\Font.ch"
+#line 29 "PROTHEUS.CH"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\PTMenu.ch"
+#line 31 "PROTHEUS.CH"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\Print.ch"
+#line 33 "PROTHEUS.CH"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\Colors.ch"
+#line 35 "PROTHEUS.CH"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\Folder.ch"
+#line 37 "PROTHEUS.CH"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\msobject.ch"
+#line 38 "PROTHEUS.CH"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\VKey.ch"
+#line 42 "PROTHEUS.CH"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\WinApi.ch"
+#line 44 "PROTHEUS.CH"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\FWCommand.ch"
+#line 47 "PROTHEUS.CH"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\FWCSS.CH"
+#line 50 "PROTHEUS.CH"
+#line 3 "e:\TOTVS1~3\MICROS~1\protheus\projeto\INTEGR~1\CAPCP0~1.PRW"
+Function U_CAPCP001()
+
+Local TAB_SC2 := {}
+
+Local _lErro      := .F. 
+Local _cDescErro:= ""
+Local _cLinha     := ""
+Local TAB_SC2    := {}
+
+Local _cProduto
+Local _cLocal
+Local _nQuant
+Local _dDtIni
+Local _dDtFim
+Local _lConout := .t. 
+Local aOpenTable      := {"SZ4","SC2","SB1"}
+Local _cAlias := GetNextAlias()
+Local _cFilial
+Local _MsgErro := ""
+
+RpcClearEnv()
+RPCSetType(3)
+RPCSetEnv("01","01","","","","",aOpenTable)
+
+_cFilial := xfilial("SZ4")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+__execSql(_cAlias," Select *, SZ4.R_E_C_N_O_ AS RECNOSZ4 From  "+RetSqlName('SZ4')+" SZ4 Where D_E_L_E_T_= ' ' AND Z4_FILIAL =  "+___SQLGetValue(_CFILIAL)+" AND Z4_SITUAC = 'N' AND Z4_STSH = 'W' Order BY Z4_FILIAL, Z4_NUM, Z4_ITEM, Z4_SEQUEN",{{"Z4_QUANT","N",12,2},{"Z4_DATPRI","D",8,0},{"Z4_DATPRF","D",8,0}},.T.)
+
+
+
+
+dbSelectArea("SAH")
+dbSetOrder(1)
+if ! dbSeek(xfilial("SAH")+alltrim((_cAlias)->(Z4_UM))  )
+
+	_MsgErro := "Unidade de Medida "+(_cAlias)->(Z4_UM)+ " não encontrado na tabela SAH"
+
+Endif
+
+
+if !empty(_MsgErro)
+
+	conout(_MsgErro+"  -  "+dtoc(date())+"  -  "+time() )
+
+
+
+
+
+
+
+Else
+
+	if _lConout
+
+		conout("Importando dados da tabela SZ2")
+
+		conout("Produto " 	+ (_cAlias)->Z4_PRODUTO )
+		conout("Local " 	+ "01" )
+		conout("Quant " 	+ str( (_cAlias)->Z4_QUANT )  )
+		conout("Data Ini " 	+ dtoc((_cAlias)->Z4_DATPRI)  )
+		conout("Data Fim "	+ dtoc((_cAlias)->Z4_DATPRF)  )
+	Endif
+
+	Aadd( TAB_SC2, { "C2_PRODUTO"	,  (_cAlias)->Z4_PRODUTO, })
+	Aadd( TAB_SC2, { "C2_LOCAL"     , "01"					, })
+	Aadd( TAB_SC2, { "C2_QUANT"     , (_cAlias)->Z4_QUANT 	, })
+	if !empty((_cAlias)->Z4_UM)
+		Aadd( TAB_SC2, { "C2_UM"     	, (_cAlias)->Z4_UM 	, })
+	Endif
+	Aadd( TAB_SC2, { "C2_EMISSAO"   , (_cAlias)->Z4_DATPRI 	, })
+	Aadd( TAB_SC2, { "C2_DATPRI"    , (_cAlias)->Z4_DATPRI 	, })
+	Aadd( TAB_SC2, { "C2_DATPRF"    , (_cAlias)->Z4_DATPRF	, })
+
+	Begin Sequence; BeginTran()
+
+	if _lConout
+		ConOut( Repl( "-", 80 ) )
+		ConOut( PadC( "Importacao para a tabela Ordem de Produção (SC2) ", 80 ) )
+		ConOut( "Inicio: " + Time() )
+	Endif
+
+	lMsErroAuto:= .f. 
+
+	MSExecAuto({|x,y| MATA650(x,y)},TAB_SC2,3)
+
+	If lMsErroAuto
+
+		_cErro := ""
+		_cErro := "Erro na inclusão da Ordem de Produção  via MSEXECAUTO "+MostraErro()
+
+		if _lConout
+			ConOut(_cErro)
+		Endif
+
+
+		dbSelectArea("SZ4")
+		SZ4->(dbGoTo((_cAlias)->RECNOSZ4))
+		Reclock("SZ4", .F. )
+		SZ4->Z4_STSH	:= "E"
+		(_cAlias)->(MsUnlock())
+
+
+
+
+	Else
+		_cRet := SC2->C2_NUM + SC2->C2_ITEM + SC2->C2_SEQUEN
+
+		dbSelectArea("SZ4")
+		SZ4->(dbGoTo((_cAlias)->RECNOSZ4))
+		Reclock("SZ4", .F. )
+		SZ4->Z4_SITUAC 	:= "Y"
+		SZ4->Z4_NUM		:= SC2->C2_NUM
+		SZ4->Z4_ITEM	:= SC2->C2_ITEM
+		SZ4->Z4_SEQUEN	:= SC2->C2_SEQUEN
+		SZ4->Z4_STSH	:= "S"
+		(_cAlias)->(MsUnlock())
+
+		if _lConout
+			conout("Gerada a Ordem de Produção "+_cRet)
+		Endif
+	Endif
+
+	EndTran(); end
+
+	if _lConout
+		ConOut("Date: " + Dtos(dDatabase) + " - Time: " + Time() + " - FIM INCLUSAO ORDEM DE PRODUÇÃO "+_cRet)
+	Endif
+
+Endif
+
+
+(_cAlias)->(dbCloseArea())
+RpcClearEnv()
+
+Return .T. 

@@ -1,0 +1,895 @@
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\rwmake.ch"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\stdwin.ch"
+#line 14 "rwmake.ch"
+#line 2 "e:\TOTVS1~3\MICROS~1\protheus\projeto\CAVAEM~1.PRW"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\PROTHEUS.CH"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\Dialog.ch"
+#line 28 "PROTHEUS.CH"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\Font.ch"
+#line 29 "PROTHEUS.CH"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\PTMenu.ch"
+#line 31 "PROTHEUS.CH"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\Print.ch"
+#line 33 "PROTHEUS.CH"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\Colors.ch"
+#line 35 "PROTHEUS.CH"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\Folder.ch"
+#line 37 "PROTHEUS.CH"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\msobject.ch"
+#line 38 "PROTHEUS.CH"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\VKey.ch"
+#line 42 "PROTHEUS.CH"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\WinApi.ch"
+#line 44 "PROTHEUS.CH"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\FWCommand.ch"
+#line 47 "PROTHEUS.CH"
+#line 1 "E:\TOTVS1~3\MICROS~1\PROTHEUS\INCLUDE\FWCSS.CH"
+#line 50 "PROTHEUS.CH"
+#line 5 "e:\TOTVS1~3\MICROS~1\protheus\projeto\CAVAEM~1.PRW"
+Function U_P7PROCESSO()
+
+Local oProcess
+Local aSays		:={}
+Local aButtons	:={}
+Local nOpca 	:= 0
+Local cCadastro := "Registro de Inventario - Em Processo"
+
+Private aTotal  := {}
+Private aImp    := {}
+Private	nDecVal := TamSX3("B2_CM1")[2]
+Private cPerg   := "MTR460"
+Private nReg    := 0
+Private cArqTemp:= ""
+Private aArqTemp  := {}
+Private cIndTemp1 := ""
+Private cIndTemp2 := ""
+Private cArqTemp2 := ""
+Private cArqTemp3 := CriaTrab(Nil, .F. )
+
+AADD(aSays,"Esta rotina tem como objetivo gerar o relatorio de Registro de Inventario " )
+AADD(aSays,"para produtos em processo - conforme parametros selecionados.")
+
+AADD(aButtons, { 5, .T. ,{|| Pergunte(cPerg, .T.  ) } } )
+AADD(aButtons, { 1, .T. ,{|| nOpca:= 1, FechaBatch() }} )
+AADD(aButtons, { 2, .T. ,{|| FechaBatch() }} )
+
+Pergunte(cPerg, .f.  )
+
+FormBatch( cCadastro, aSays, aButtons,, 220, 560 )
+
+If nOpca = 1
+	oProcess:= MsNewProcess():New( { |lEnd| OkProces( oProcess, cPerg ) }, "", "", .F.  )
+	oProcess:Activate()
+Endif
+
+Return()
+
+Static Function OkProces( oObj, cPerg )
+
+Local lObj	    := ValType(oObj) == "O"
+Local nMAXPASSO := 3
+
+If lObj
+	oObj:SetRegua1(nMAXPASSO)
+EndIf
+
+If lObj
+	oObj:IncRegua1("Analisando as OPs")
+EndIf
+
+AnalisaOps(oObj)
+
+If lObj
+	oObj:IncRegua1("Montando o Relatorio")
+EndIf
+
+MontaRel(cArqTemp,oObj)
+
+If !empty(aImp)
+  TelaProcesso()
+ Else
+  Alert("Nao exitem produtos em processo !!!")
+EndIf
+
+
+
+dbSelectArea(cArqTemp)
+dbCloseArea()
+Ferase(cArqTemp+GetDBExtension())
+Ferase(cIndTemp1+OrdBagExt())
+Ferase(cIndTemp2+OrdBagExt())
+
+Return
+
+
+Static Function AnalisaOps(oObj)
+
+Local lObj	    := ValType(oObj) == "O"
+Local aCampos   := {}
+Local aEmAnalise:= {}
+Local aSalAtu   := {}
+Local aProducao := {}
+Local lCusFIFO  := GetMV("MV_CUSFIFO")
+Local lQuery    := .F. 
+Local lEmProcess:= .F. 
+Local cAliasTop := "SD3"
+Local cAliasSD3 := "SD3"
+Local nQtMedia  := 0
+Local nQtNeces  := 0
+Local nQtde     := 0
+Local nCusto    := 0
+Local nPos      := 0
+Local nX        := 0
+Local nQtdOrigem:= 0
+Local nQtdProduz:= 0
+Local cQuery    := ""
+Local nDecQtd   := If(TamSX3("B2_QFIM")[2] > 4,3,TamSX3("B2_QFIM")[2])
+Local nTmOP     := TamSX3("D3_OP")[1]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+lSaldProcess:=(mv_par01==1)
+lSaldTerceir:=(mv_par02<>2)
+cAlmoxIni	:=IIf(mv_par03=="**",Space(02),mv_par03)
+cAlmoxFim	:=IIf(mv_par04=="**","ZZ",mv_par04)
+cProdIni	:= mv_par05
+cProdFim	:= mv_par06
+lListProdMov:=(mv_par07==1)
+lListProdNeg:=(mv_par08==1)
+lListProdZer:=(mv_par09==1)
+nPagIni		:= mv_par10
+nQtdPag		:= mv_par11
+cNrLivro	:= mv_par12
+lLivro		:=(mv_par13<>2)
+dDtFech		:= mv_par14
+lDescrNormal:=(mv_par15==1)
+lListCustZer:=(mv_par16==1)
+lListCustMed:=(mv_par17==1)
+lCalcProcDt	:=(mv_par18==1)
+lModProces  :=(mv_par20==1)
+
+AADD(aArqTemp,{"OP"	        ,"C",nTmOP,0})
+AADD(aArqTemp,{"TIPO"		,"C",02,0})
+AADD(aArqTemp,{"POSIPI"		,"C",10,0})
+AADD(aArqTemp,{"PRODUTO"	,"C",15,0})
+AADD(aArqTemp,{"DESCRICAO"	,"C",35,0})
+AADD(aArqTemp,{"UM"			,"C",02,0})
+AADD(aArqTemp,{"QUANTIDADE"	,"N",14,nDecQtd})
+AADD(aArqTemp,{"VALOR_UNIT"	,"N",21,nDecVal})
+AADD(aArqTemp,{"TOTAL"		,"N",21,nDecVal})
+
+
+cKeyInd:= "TIPO+POSIPI+PRODUTO+OP"
+
+
+cArqTemp :=CriaTrab(aArqTemp)
+cIndTemp1:=Substr(CriaTrab(NIL, .F. ),1,7)+"1"
+cIndTemp2:=Substr(CriaTrab(NIL, .F. ),1,7)+"2"
+
+dbUseArea( .T. ,,cArqTemp,cArqTemp, .T. , .F. )
+IndRegua(cArqTemp,cIndTemp1,cKeyInd,,,"Indice Tempor rio...")
+IndRegua(cArqTemp,cIndTemp2,"PRODUTO+OP",,,"Indice Tempor rio...")
+
+SetCursor( if(Upper("OFF") == "ON", 1, 0) )
+DbClearIndex()
+DbSetIndex(cIndTemp1+OrdBagExt())
+DbSetIndex(cIndTemp2+OrdBagExt())
+
+
+
+
+
+
+
+
+AADD(aCampos,{"OP"		,"C",TamSX3("D3_OP")[1]			,0})
+AADD(aCampos,{"SEQCALC"	,"C",TamSX3("D3_SEQCALC")[1]	,0})
+AADD(aCampos,{"DATA1"	,"D",8							,0})
+cArqTemp2:=CriaTrab(aCampos)
+
+dbUseArea( .T. ,,cArqTemp2,cArqTemp2, .T. , .F. )
+IndRegua(cArqTemp2,cArqTemp2,"OP+SEQCALC+DTOS(DATA1)",,,"Criando Indice...")
+
+
+
+
+dbSelectArea("SD3")
+dbSetOrder(1)
+
+cAliasTop := cArqTemp3
+cQuery := "SELECT D3_FILIAL, D3_OP, D3_COD, D3_LOCAL, D3_CF, D3_EMISSAO, D3_SEQCALC "
+cQuery += "FROM "+RetSqlName("SD3")+" SD3 "
+cQuery += "WHERE SD3.D3_FILIAL='"+xFilial("SD3")+"' "
+cQuery += "AND SD3.D3_OP <> '" + Criavar("D3_OP", .F. )+ "' "
+cQuery += "AND (SD3.D3_CF ='PR0' OR SD3.D3_CF = 'PR1') "
+If !Empty(dDtFech)
+	cQuery += "AND SD3.D3_EMISSAO <= '" + DTOS(dDtFech) + "' "
+EndIf
+cQuery += "AND SD3.D3_ESTORNO = ' ' "
+cQuery += "AND SD3.D_E_L_E_T_ = ' ' "
+
+cQuery += "UNION "
+cQuery += "SELECT D3_FILIAL, D3_OP, D3_COD, D3_LOCAL, D3_CF, D3_EMISSAO, D3_SEQCALC "
+cQuery += "FROM "+RetSqlName("SD3")+" SD3 "
+cQuery += "WHERE SD3.D3_FILIAL='" + xFilial("SD3") + "' "
+cQuery += "AND SD3.D3_OP <> '" + Criavar("D3_OP", .F. ) + "' "
+cQuery += "AND SD3.D3_COD >= '"+cProdIni+"' "
+cQuery += "AND SD3.D3_COD <= '"+cProdFim+"' "
+cQuery += "AND SD3.D3_CF <>'PR0' AND SD3.D3_CF <>'PR1' "
+If !Empty(dDtFech)
+	cQuery += "AND SD3.D3_EMISSAO <= '" + DTOS(dDtFech) + "' "
+EndIf
+cQuery += "AND SD3.D3_ESTORNO = ' ' "
+cQuery += "AND SD3.D_E_L_E_T_ = ' ' "
+
+
+
+cQuery += "ORDER BY "+SqlOrder(SD3->(IndexKey()))
+
+cQuery := ChangeQuery(cQuery)
+dbUseArea( .T. ,"TOPCONN",TcGenQry(,,cQuery),cArqTemp3, .T. , .T. )
+
+TcSetField(cAliasTop,"D3_EMISSAO","D",8,0)
+
+dbSelectArea( cArqTemp3 )
+DbGoTop()
+bAcao:= {|| nReg ++ }
+dbEval(bAcao,,{||!Eof()},,, .T. )
+
+If lObj
+	oObj:SetRegua2(nReg)
+Endif
+
+nReg := 0
+
+
+
+
+
+dbSelectArea( cAliasTop )
+DbGoTop()
+
+While !Eof()
+
+    If lObj
+     oObj:IncRegua2("Armazenando as OPs")
+    Endif
+
+
+
+	SC2->(dbSetOrder(1))
+	If SC2->(C2_FILIAL+C2_NUM+C2_ITEM+C2_SEQUEN+C2_ITEMGRD)#(xFilial("SC2")+(cAliasTop)->D3_OP)
+		SC2->(MsSeek(xFilial("SC2")+(cAliasTop)->D3_OP))
+	EndIf
+
+
+If !Empty(dDtFech)
+	If !Empty(SC2->C2_DATRF) .And.  SC2->C2_DATRF <= dDtFech
+		dbSkip()
+		Loop
+	EndIf
+Else
+	If !Empty(SC2->C2_DATRF)
+		dbSkip()
+		Loop
+	EndIf
+EndIf
+
+
+	dbSelectArea(cArqTemp2)
+	If dbSeek((cAliasTop)->D3_OP)
+		RecLock(cArqTemp2, .F. )
+	Else
+        nReg ++
+		RecLock(cArqTemp2, .T. )
+		_FIELD->OP := (cAliasTop)->D3_OP
+	EndIf
+	If SubStr((cAliasTop)->D3_CF,1,2) == "PR"
+		_FIELD->DATA1 := Max((cAliasTop)->D3_EMISSAO,DATA1)
+		If !lCalcProcDt .And.  ((cAliasTop)->D3_SEQCALC > SEQCALC)
+			_FIELD->SEQCALC := (cAliasTop)->D3_SEQCALC
+		EndIf
+	EndIf
+	MsUnlock()
+
+	dbSelectArea(cAliasTop)
+	dbSkip()
+
+
+EndDo
+
+
+
+
+dbSelectArea(cAliasTop)
+dbCloseArea()
+dbSelectArea("SD3")
+
+If lObj
+	oObj:SetRegua2(nReg)
+Endif
+
+nReg := 0
+
+
+
+
+dbSelectArea(cArqTemp2)
+dbGotop()
+While !Eof()
+
+
+    If lObj
+     oObj:IncRegua2("Gerando Saldo em Processo")
+    Endif
+
+
+	aProducao := {}
+	aEmAnalise:= {}
+
+	dbSelectArea("SD3")
+	dbSetOrder(1)
+	lQuery    := .T. 
+	cAliasSD3 := GetNextAlias()
+	cQuery := "SELECT SD3.D3_FILIAL, SD3.D3_OP, SD3.D3_COD, SD3.D3_LOCAL, SD3.D3_CF, SD3.D3_EMISSAO, "
+	cQuery += "SD3.D3_SEQCALC, SD3.D3_CUSTO1, SD3.D3_SEQCALC, SD3.D3_QUANT, SD3.D3_ESTORNO, SD3.D3_PERDA, SD3.R_E_C_N_O_ RECNOSD3 "
+	cQuery += "FROM "+RetSqlName("SD3")+" SD3 "
+	cQuery += "WHERE SD3.D3_FILIAL='"+xFilial("SD3")+"' "
+	cQuery += "AND SD3.D3_OP = '" + (cArqTemp2)->OP + "' "
+	cQuery += "AND SD3.D3_ESTORNO = ' ' "
+	cQuery += "AND SD3.D_E_L_E_T_ = ' ' "
+	cQuery += "ORDER BY " + SqlOrder(SD3->(IndexKey()))
+
+	cQuery := ChangeQuery(cQuery)
+	dbUseArea( .T. ,"TOPCONN",TcGenQry(,,cQuery),cAliasSD3, .T. , .T. )
+
+	TcSetField(cAliasSD3,"D3_EMISSAO","D",8,0)
+	TcSetField(cAliasSD3,"D3_QUANT","N",TamSX3("D3_QUANT")[1],TamSX3("D3_QUANT")[2])
+	TcSetField(cAliasSD3,"D3_CUSTO1","N",TamSX3("D3_CUSTO1")[1],TamSX3("D3_CUSTO1")[2])
+
+
+	While !Eof() .And.  (cAliasSD3)->D3_OP==(cArqTemp2)->OP
+
+
+
+
+
+
+	If !Empty(dDtFech)
+		If (cAliasSD3)->D3_EMISSAO > dDtFech .Or.  (cAliasSD3)->D3_ESTORNO == "S"
+			dbSkip()
+			Loop
+		EndIf
+    Else
+		If (cAliasSD3)->D3_ESTORNO == "S"
+			dbSkip()
+			Loop
+		EndIf
+    EndIf
+
+
+
+
+		If SubStr((cAliasSD3)->D3_CF,1,2) == "PR"
+			nPos:=Ascan(aProducao,{|x|x[1]==(cAliasSD3)->D3_COD})
+			If nPos==0
+				AADD(aProducao,{(cAliasSD3)->D3_COD,(cAliasSD3)->D3_QUANT,(cAliasSD3)->D3_CUSTO1,(cAliasSD3)->D3_PERDA,(cArqTemp2)->OP})
+			Else
+				aProducao[nPos,2] += (cAliasSD3)->D3_QUANT
+				aProducao[nPos,3] += (cAliasSD3)->D3_CUSTO1
+				aProducao[nPos,4] += (cAliasSD3)->D3_PERDA
+			EndIf
+		EndIf
+
+
+
+
+
+		If (cAliasSD3)->D3_COD < cProdIni .Or.  (cAliasSD3)->D3_COD > cProdFim .Or.  If(lModProces, .T. ,IsProdMod((cAliasSD3)->D3_COD))
+   			dbSkip()
+  			Loop
+  		EndIf
+
+
+
+
+		If (cAliasSD3)->D3_LOCAL < cAlmoxIni .Or.  (cAliasSD3)->D3_LOCAL > cAlmoxFim
+			dbSkip()
+			Loop
+		EndIf
+
+
+
+
+		If SubStr((cAliasSD3)->D3_CF,1,2) == "RE"
+			nPos:=Ascan(aEmAnalise,{|x|x[1]==(cAliasSD3)->D3_COD})
+			If nPos==0
+
+
+
+
+
+
+
+				AADD(aEmAnalise,{	(cAliasSD3)->D3_COD								,				(cAliasSD3)->D3_LOCAL							,				(cAliasSD3)->D3_QUANT							,				(cAliasSD3)->D3_CUSTO1							,				IIf (lQuery, (cAliasSD3)->RECNOSD3, RECNO())	,				"RE" 											,				(cAliasSD3)->D3_OP				})
+			Else
+				aEmAnalise[nPos,3] += (cAliasSD3)->D3_QUANT
+				aEmAnalise[nPos,4] += (cAliasSD3)->D3_CUSTO1
+			EndIf
+
+
+
+
+		ElseIf SubStr((cAliasSD3)->D3_CF,1,2) == "DE"
+			nPos:=Ascan(aEmAnalise,{|x|x[1]==(cAliasSD3)->D3_COD})
+			If nPos==0
+
+
+
+
+
+
+
+				AADD(aEmAnalise,{	(cAliasSD3)->D3_COD								,				(cAliasSD3)->D3_LOCAL							,				(cAliasSD3)->D3_QUANT	* (-1)					,				(cAliasSD3)->D3_CUSTO1	* (-1)					,				IIf (lQuery, (cAliasSD3)->RECNOSD3, RECNO())	,				"DE" 											,				(cAliasSD3)->D3_OP				})
+			Else
+				aEmAnalise[nPos,3] -= (cAliasSD3)->D3_QUANT
+				aEmAnalise[nPos,4] -= (cAliasSD3)->D3_CUSTO1
+			EndIf
+
+		EndIf
+
+		dbSelectArea(cAliasSD3)
+		dbSkip()
+
+	EndDo
+
+
+
+
+
+
+	SC2->(dbSetOrder(1))
+	If SC2->(C2_FILIAL+C2_NUM+C2_ITEM+C2_SEQUEN+C2_ITEMGRD)#(xFilial("SC2")+(cArqTemp2)->OP)
+		SC2->(MsSeek(xFilial("SC2")+(cArqTemp2)->OP))
+	EndIf
+
+	If SC2->(C2_FILIAL+C2_NUM+C2_ITEM+C2_SEQUEN+C2_ITEMGRD)==(xFilial("SC2")+(cArqTemp2)->OP)
+
+
+		If Len(aEmAnalise) > 0
+
+
+			If Len(aProducao) > 0
+
+				For nX := 1 To Len(aEmAnalise)
+					dbSelectArea("SD4")
+					dbSetOrder(2)
+					If dbSeek(xFilial("SD4")+(cArqTemp2)->OP+aEmAnalise[nX,1]+aEmAnalise[nX,2])
+
+						lEmProcess := .F. 
+
+						nQtMedia  := SD4->D4_QTDEORI / SC2->C2_QUANT
+
+						nQtNeces  := aProducao[1,2] * nQtMedia
+
+						If (aEmAnalise[nX,3]) > nQtNeces
+							lEmProcess := .T. 
+
+							nQtde  := aEmAnalise[nX,3] - nQtNeces
+
+							nCusto := (aEmAnalise[nX,4] / aEmAnalise[nX,3]) * nQtde
+						EndIf
+
+
+
+
+						If lEmProcess
+
+							If SB1->B1_COD<>aEmAnalise[nX,1]
+								SB1->(dbSeek(xFilial("SB1")+aEmAnalise[nX,1]))
+							EndIf
+
+                            nReg ++
+
+							If SB1->B1_COD==aEmAnalise[nX,1]
+								dbSelectArea(cArqTemp)
+								dbSetOrder(2)
+								RecLock(cArqTemp,!dbSeek(aEmAnalise[nX,1]+aEmAnalise[nX,7]))
+								_FIELD->OP := aEmAnalise[nX,7]
+								_FIELD->TIPO := SB1->B1_TIPO
+								_FIELD->POSIPI := SB1->B1_POSIPI
+								_FIELD->PRODUTO := SB1->B1_COD
+								_FIELD->DESCRICAO := SB1->B1_DESC
+								_FIELD->UM := SB1->B1_UM
+								_FIELD->QUANTIDADE := QUANTIDADE+nQtde
+								_FIELD->TOTAL := TOTAL+nCusto
+								If QUANTIDADE > 0
+									_FIELD->VALOR_UNIT := NoRound(TOTAL/QUANTIDADE,nDecVal)
+								EndIf
+								MsUnLock()
+							EndIf
+						EndIf
+					EndIf
+
+				next
+
+
+			Else
+
+
+				For nX := 1 to Len(aEmAnalise)
+
+
+					If SB1->B1_COD<>aEmAnalise[nX,1]
+						SB1->(dbSeek(xFilial("SB1")+aEmAnalise[nX,1]))
+					EndIf
+
+
+
+
+
+					If SB1->B1_COD==aEmAnalise[nX,1]
+                        nReg ++
+						dbSelectArea(cArqTemp)
+						dbSetOrder(2)
+						RecLock(cArqTemp,!dbSeek(SB1->B1_COD+aEmAnalise[nX,7]))
+						_FIELD->OP := aEmAnalise[nX,7]
+						_FIELD->TIPO := SB1->B1_TIPO
+						_FIELD->POSIPI := SB1->B1_POSIPI
+						_FIELD->PRODUTO := SB1->B1_COD
+						_FIELD->DESCRICAO := SB1->B1_DESC
+						_FIELD->UM := SB1->B1_UM
+						Do Case
+							Case aEmAnalise[nX,6] == "RE"
+								_FIELD->QUANTIDADE := QUANTIDADE+aEmAnalise[nX,3]
+								_FIELD->TOTAL := TOTAL+aEmAnalise[nX,4]
+							Case aEmAnalise[nX,6] == "DE"
+								_FIELD->QUANTIDADE := QUANTIDADE-aEmAnalise[nX,3]
+								_FIELD->TOTAL := TOTAL-aEmAnalise[nX,4]
+						EndCase
+						If QUANTIDADE > 0
+							_FIELD->VALOR_UNIT := NoRound(TOTAL/QUANTIDADE,nDecVal)
+						EndIf
+						MsUnLock()
+					EndIf
+
+				next
+
+			EndIf
+
+		EndIf
+
+	EndIf
+
+
+	If lQuery
+		dbSelectArea(cAliasSD3)
+		dbCloseArea()
+	EndIf
+
+	dbSelectArea(cArqTemp2)
+	dbSkip()
+
+EndDo
+
+
+
+
+dbSelectArea(cArqTemp2)
+dbCloseArea()
+Ferase(cArqTemp2+GetDBExtension())
+Ferase(cArqTemp2+OrdBagExt())
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Return Nil
+
+
+Static Function MontaRel(cArqTemp,oObj)
+
+Local cTipoAnt:= "XX"
+Local cQuebra := ""
+Local cPosIpi := ""
+Local nTotIpi := 0
+Local nAliq   := 0
+Local cKeyQbr := ""
+Local lObj	    := ValType(oObj) == "O"
+Local cQuebra2 := ""
+Local cKeyQbr2 := ""
+Local cProduto := ""
+Local nTotQtd  := 0
+Local nTotPro  := 0
+
+lSaldProcess:=(mv_par01==1)
+lSaldTerceir:=(mv_par02<>2)
+cAlmoxIni	:=IIf(mv_par03=="**",Space(02),mv_par03)
+cAlmoxFim	:=IIf(mv_par04=="**","ZZ",mv_par04)
+cProdIni	:= mv_par05
+cProdFim	:= mv_par06
+lListProdMov:=(mv_par07==1)
+lListProdNeg:=(mv_par08==1)
+lListProdZer:=(mv_par09==1)
+nPagIni		:= mv_par10
+nQtdPag		:= mv_par11
+cNrLivro	:= mv_par12
+lLivro		:=(mv_par13<>2)
+dDtFech		:= mv_par14
+lDescrNormal:=(mv_par15==1)
+lListCustZer:=(mv_par16==1)
+lListCustMed:=(mv_par17==1)
+lCalcProcDt	:=(mv_par18==1)
+lModProces  :=(mv_par20==1)
+
+
+If lObj
+	oObj:SetRegua2(nReg)
+Endif
+
+
+dbSelectArea(cArqTemp)
+dbSetOrder(1)
+dbGotop()
+While !Eof()
+
+
+    If lObj
+     oObj:IncRegua2("Montando Relatorio..")
+    Endif
+
+	cTipoAnt := TIPO
+
+	While !Eof() .And.  cTipoAnt == TIPO
+
+		cPosIpi:=POSIPI
+		nTotIpi:=0
+
+
+		cQuebra := cTipoAnt+cPosIpi
+		cKeyQbr := "TIPO+POSIPI"
+
+
+		While !Eof() .And.  cQuebra==&(cKeyQbr)
+
+             cProduto := PRODUTO
+		     cQuebra2 := cTipoAnt+cPosIpi+cProduto
+		     cKeyQbr2 := "TIPO+POSIPI+PRODUTO"
+             nTotQtd  := 0
+             nTotPro  := 0
+
+		     While !Eof() .And.  cQuebra2==&(cKeyQbr2)
+
+
+
+
+
+			  If (!lListProdNeg .And.  QUANTIDADE<0) .Or.  (!lListProdZer .And.  QUANTIDADE==0) .Or.  (!lListCustZer .And.  TOTAL==0)
+			     dbSkip()
+			 	 Loop
+			   Else
+				 nTotIpi+=TOTAL
+                 nTotQtd+=QUANTIDADE
+                 nTotPro+=TOTAL
+				 RAcumula(aTotal)
+			  EndIf
+
+
+
+
+
+
+
+
+
+
+
+
+				AADD(aImp,{	TIPO, Alltrim(POSIPI), Alltrim(PRODUTO), Alltrim(DESCRICAO), UM, Transform(QUANTIDADE,IF(TamSX3("B2_QFIM")[2]>3,"@E 99,999,999.999",PesqPict("SB2", "B2_QFIM",14))), Transform(NoRound(TOTAL/QUANTIDADE,nDecVal),PesqPict("SB2", "B2_CM1",18)), Transform(TOTAL,"@E 999,999,999,999.99"), OP, "", "", ""})
+
+			  dbSelectArea(cArqTemp)
+			  dbSkip()
+
+
+
+
+
+			  While !Eof() .And.  ((!lListProdNeg .And. QUANTIDADE<0) .Or. (!lListProdZer .And. QUANTIDADE==0) .Or. (!lListCustZer .And. TOTAL==0))
+				dbSkip()
+			  EndDo
+
+
+
+
+			  If !(cTipoAnt+cPosIpi+cProduto==TIPO+POSIPI+PRODUTO)
+				 aImp[len(aImp),10] := Transform(nTotQtd,"@E 999,999.999")
+				 aImp[len(aImp),11] := Transform(nTotPro,"@E 999,999,999,999.99")
+                 nTotQtd := 0
+                 nTotPro := 0
+			  EndIf
+
+
+			End
+
+
+
+
+
+
+
+
+		End
+
+	End
+
+End
+
+Return
+
+Static Function RAvalProd(cProduto,lConsMod)
+lConsMod := If( lConsMod == nil, .F. , lConsMod ) ;
+Return(cProduto>=cProdIni .And. cProduto<=cProdFim) .And.  IIf(lConsMod, .T. ,!IsProdMod(cProduto))
+
+Static Function RAcumula(aTotal)
+
+Local nPos:=0
+
+nPos:=Ascan(aTotal,{|x|x[1]=="X" .And. x[2]==TIPO})
+If nPos==0
+	AADD(aTotal,{"X",TIPO,QUANTIDADE,VALOR_UNIT,TOTAL})
+Else
+	aTotal[nPos,3]+=QUANTIDADE
+	aTotal[nPos,4]+=VALOR_UNIT
+	aTotal[nPos,5]+=TOTAL
+EndIf
+
+nPos:=Ascan(aTotal,{|x|x[1]=="T" .And. x[2]=="TT"})
+If nPos==0
+	AADD(aTotal,{"T","TT",QUANTIDADE,VALOR_UNIT,TOTAL})
+Else
+	aTotal[nPos,3]+=QUANTIDADE
+	aTotal[nPos,4]+=VALOR_UNIT
+	aTotal[nPos,5]+=TOTAL
+EndIf
+
+Return Nil
+
+Static Function TelaProcesso()
+
+Local aSize    := {}
+Local aObjects := {}
+Local aInfo    := {}
+Local cCabec   := "Reg. Inventario de Produtos em Processo"
+Private aPosObj  := {}
+Private oDlg2
+Private oListBox2, bLine2
+Private cTitulo2 := "Inventario - Processos"
+Private aHead_2  := {"TIPO","POSIPI","PRODUTO","DESCRICAO","UM","QTD","VLR.UNIT.","VLR.TOTAL","OP","TOT QTD","TOT PROD","TOT IPI"}
+Private cLine2   := "{ aImp[oListBox2:nAt][1] "
+
+For nI:=2 To Len(aHead_2)
+	cLine2 += " ,aImp[oListBox2:nAt][" + AllTrim(Str(nI)) + "]"
+Next
+cLine2 += "}"
+bLine2 := &( "{|| " + cLine2 + "}" )
+
+
+
+
+aSize    := MsAdvSize()
+aObjects := {}
+AAdd( aObjects, { 100, 1, .F. , .T. , .F.  } )
+AAdd( aObjects, { 1, 1, .T. , .T. , .F.  } )
+
+aInfo   := { aSize[ 1 ], aSize[ 2 ], aSize[ 3 ], aSize[ 4 ], 3, 3 }
+aPosObj := MsObjSize( aInfo, aObjects, .t. , .t.  )
+aPosObj[2][3] -= 14
+
+
+oDlg2 = MsDialog():New( aSize[7], 0, aSize[6], aSize[5], cTitulo2,,,.F.,,,,, GetWndDefault(),.T.,, ,.F. )
+
+
+	SButton():New(aPosObj[2][3] + 3, aPosObj[2][4] - 30 , 01 , { || oDlg2:End() }, oDlg2, .T.  )
+	tButton():New(aPosObj[2][3] + 3,aPosObj[2][4] - 250, "Excel", , { || MsAguarde ( { || DlgToExcel({ {"ARRAY",cCabec,aHead_2,aImp} }) } )}, 085, 010 ,,,, .T. )
+
+	oListBox2 := TWBrowse():New( aPosObj[2][1],aPosObj[2][2]-100,aPosObj[2][4]-10,aPosObj[2][3]-20,,aHead_2,,oDlg2,,,,,,,,,,,, .F. ,, .T. ,, .F. ,,,)
+	oListBox2:SetArray(aImp)
+	oListBox2:bLine := bLine2
+
+
+oDlg2:Activate( oDlg2:bLClicked, oDlg2:bMoved, oDlg2:bPainted,.T.,,,, oDlg2:bRClicked, )
+
+
+Return
