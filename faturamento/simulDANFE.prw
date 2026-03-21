@@ -264,7 +264,7 @@ static function DPreDanfeNF(cModNF,cNota,cSerie,cCliFor)
 		enddo
 	endif
 
-	aCampo := {{"F1_BASEICM","F1_VALICM","F1_VALMERC","F1_FRETE","F1_SEGURO","F1_DESCONT","F1_DESPESA","F1_VALIPI","F1_VALBRUT","F1_BRICMS","F1_ICMSRET","F1_VALPIS","F1_VALCOF"},;
+	aCampo := {{"F1_BASEICM","F1_VALICM","F1_VALMERC","F1_FRETE","F1_SEGURO","F1_DESCONT","F1_DESPESA","F1_VALIPI","F1_VALBRUT","F1_BRICMS","F1_ICMSRET","F1_VALIMP6","F1_VALIMP5"},;
 		{"F2_BASEICM","F2_VALICM","F2_VALMERC","F2_FRETE","F2_SEGURO","F2_DESCONT","F2_DESPESA","F2_VALIPI","F2_VALBRUT","F2_BRICMS","F2_ICMSRET","F2_VALIMP6","F2_VALIMP5"}}
 
 	AAdd(aTotais,Transf((cAliasNF)->&(aCampo[nIndice][1]),"@E 9,999,999,999,999.99"))   // [01] BASE ICMS
@@ -373,8 +373,8 @@ static function DPreDanfeNF(cModNF,cNota,cSerie,cCliFor)
 		nIndOrd := 1
 	endif
 
-	aCampo := {{"D1_DOC","D1_SERIE","D1_FORNECE","D1_LOJA","D1_DESCPRO","D1_COD","D1_TES","D1_CF","D1_CLASFIS","D1_UM","D1_QUANT","D1_VUNIT","D1_TOTAL","D1_BASEICM","D1_VALICM","D1_VALIPI","D1_PICM","D1_IPI","D1_VALISS","D1_VALPIS","D1_VALCOF"},;
-		{"D2_DOC","D2_SERIE","D2_CLIENTE","D2_LOJA","C6_DESCRI","D2_COD","D2_TES","D2_CF","D2_CLASFIS","D2_UM","D2_QUANT","D2_PRCVEN","D2_TOTAL","D2_BASEICM","D2_VALICM","D2_VALIPI","D2_PICM","D2_IPI","D2_VALISS","D2_VALPIS","D2_VALCOF"}}
+	aCampo := {{"D1_DOC","D1_SERIE","D1_FORNECE","D1_LOJA","D1_DESCPRO","D1_COD","D1_TES","D1_CF","D1_CLASFIS","D1_UM","D1_QUANT","D1_VUNIT","D1_TOTAL","D1_BASEICM","D1_VALICM","D1_VALIPI","D1_PICM","D1_IPI","D1_VALISS","D1_VALIMP6","D1_VALIMP5"},;
+		{"D2_DOC","D2_SERIE","D2_CLIENTE","D2_LOJA","C6_DESCRI","D2_COD","D2_TES","D2_CF","D2_CLASFIS","D2_UM","D2_QUANT","D2_PRCVEN","D2_TOTAL","D2_BASEICM","D2_VALICM","D2_VALIPI","D2_PICM","D2_IPI","D2_VALISS","D2_VALIMP6","D2_VALIMP5"}}
 
 	DbSelectArea(cAliasIT)
 	(cAliasIT)->(DbSetOrder(nIndOrd))
@@ -461,12 +461,27 @@ return
 
 //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
 //³ GERANDO DADOS DA PRE-DANFE PELO PEDIDO DE VENDA                        ³
+//³ Com simulação fiscal via MaFisIni/MaFisAdd/MaFisRet/MaFisEnd          ³
 //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
-static function DPreDanfePV(cModNF,cPedVen,cCliFor)
-	local aCampo := {}
-	local aTes := {}
-	local nTotNota := 0
-	local nTotServico := 0
+static function DPreDanfePV(cModNF, cPedVen, cCliFor)
+	local aCampo         := {}
+	local aTes           := {}
+	local aAreaBkp       := {}
+	local aImpostoItem   := {}   // impostos por item: {baseICM,valICM,valIPI,alqICM,alqIPI,valPIS,valCOF}
+	local nItAtu         := 0
+	local nItem          := 0
+	local nTotNota       := 0
+	local nTotServico    := 0
+	// Totalizadores fiscais
+	local nTotBaseICM    := 0
+	local nTotValICM     := 0
+	local nTotBaseST     := 0
+	local nTotValST      := 0
+	local nTotIPI        := 0
+	local nTotPIS        := 0
+	local nTotCOFINS     := 0
+	local nTotFrete      := 0
+	local nTotGeral      := 0
 
 	cModNF  := IIf(ValType(cModNF)  == "C", cModNF,  "1")
 	cPedVen := IIf(ValType(cPedVen) == "C", cPedVen, "")
@@ -484,40 +499,49 @@ static function DPreDanfePV(cModNF,cPedVen,cCliFor)
 		Return
 	EndIf
 
+	//----------------------------------------------------------------------
+	// Empresa (SM0)
+	//----------------------------------------------------------------------
 	DbSelectArea("SM0")
 	SM0->(MsSeek(cEmpAnt+cFilAnt,.F.))
+	AAdd(aEmpresa, AllTrim(SM0->M0_NOMECOM))
+	AAdd(aEmpresa, AllTrim(SM0->M0_ENDCOB))
+	AAdd(aEmpresa, AllTrim(SM0->M0_BAIRCOB)+" - CEP: "+Transf(SM0->M0_CEPCOB,"@R 99999-999"))
+	AAdd(aEmpresa, AllTrim(SM0->M0_CIDCOB)+"/"+SM0->M0_ESTCOB)
+	AAdd(aEmpresa, "Fone: 31 "+Transf(Right(AllTrim(SM0->M0_TEL),8),"@R 9999-9999"))
+	AAdd(aEmpresa, GetSrvProfString("Startpath","")+"DANFE"+cEmpAnt+cFilAnt+".BMP")
+	AAdd(aEmpresa, AllTrim(SM0->M0_CGC))
+	AAdd(aEmpresa, AllTrim(SM0->M0_INSC))
+	AAdd(aEmpresa, AllTrim(SM0->M0_INSCM))
 
-	AAdd(aEmpresa,AllTrim(SM0->M0_NOMECOM))
-	AAdd(aEmpresa,AllTrim(SM0->M0_ENDCOB))
-	AAdd(aEmpresa,AllTrim(SM0->M0_BAIRCOB)+" - CEP: "+Transf(SM0->M0_CEPCOB,"@R 99999-999"))
-	AAdd(aEmpresa,AllTrim(SM0->M0_CIDCOB)+"/"+SM0->M0_ESTCOB)
-	AAdd(aEmpresa,"Fone: 31 "+Transf(Right(AllTrim(SM0->M0_TEL),8),"@R 9999-9999"))
-	AAdd(aEmpresa,GetSrvProfString("Startpath","")+"DANFE"+cEmpAnt+cFilAnt+".BMP")
-	AAdd(aEmpresa,AllTrim(SM0->M0_CGC))
-	AAdd(aEmpresa,AllTrim(SM0->M0_INSC))
-	AAdd(aEmpresa,AllTrim(SM0->M0_INSCM))
-
+	//----------------------------------------------------------------------
+	// Cabeçalho do pedido (SC5)
+	//----------------------------------------------------------------------
 	DbSelectArea("SC5")
+	SC5->(DbSetOrder(1))
 	SC5->(MsSeek(xFilial("SC5")+cPedVen,.F.))
 
-	AAdd(aNotaF,cModNF)
-	AAdd(aNotaF,cPedVen)
-	AAdd(aNotaF,"")
-	AAdd(aNotaF,cCliFor)
-	AAdd(aNotaF,SC5->C5_TIPO)
-	AAdd(aNotaF,DToS(SC5->C5_EMISSAO))
-	AAdd(aNotaF,"")
-	AAdd(aNotaF,"")
-	AAdd(aNotaF,SC5->C5_TRANSP)
-	AAdd(aNotaF,"")
-	AAdd(aNotaF,AllTrim(SC5->C5_TPFRETE))
-	AAdd(aNotaF,SC5->C5_PLACA1)
-	AAdd(aNotaF,Str(SC5->C5_VOLUME1))
-	AAdd(aNotaF,AllTrim(SC5->C5_ESPECI1))
-	AAdd(aNotaF,Str(SC5->C5_PBRUTO))
-	AAdd(aNotaF,Str(SC5->C5_PESOL))
-	AAdd(aNotaF,AllTrim(SC5->C5_MENNOTA))
+	AAdd(aNotaF, cModNF)                         // [01] Mod NF
+	AAdd(aNotaF, cPedVen)                         // [02] Número
+	AAdd(aNotaF, "")                              // [03] Série
+	AAdd(aNotaF, cCliFor)                         // [04] Cliente+Loja
+	AAdd(aNotaF, SC5->C5_TIPO)                    // [05] Tipo NF
+	AAdd(aNotaF, DToS(SC5->C5_EMISSAO))          // [06] Emissão
+	AAdd(aNotaF, "")                              // [07] Data Saída
+	AAdd(aNotaF, "")                              // [08] Hora Saída
+	AAdd(aNotaF, SC5->C5_TRANSP)                  // [09] Transportadora
+	AAdd(aNotaF, "")                              // [10] Natureza Operação
+	AAdd(aNotaF, AllTrim(SC5->C5_TPFRETE))       // [11] Tipo Frete
+	AAdd(aNotaF, SC5->C5_PLACA1)                  // [12] Placa
+	AAdd(aNotaF, Str(SC5->C5_VOLUME1))            // [13] Volume
+	AAdd(aNotaF, AllTrim(SC5->C5_ESPECI1))        // [14] Espécie
+	AAdd(aNotaF, Str(SC5->C5_PBRUTO))             // [15] Peso Bruto
+	AAdd(aNotaF, Str(SC5->C5_PESOL))              // [16] Peso Líquido
+	AAdd(aNotaF, AllTrim(SC5->C5_MENNOTA))        // [17] Mensagem
 
+	//----------------------------------------------------------------------
+	// Destinatário
+	//----------------------------------------------------------------------
 	if cModNF == "1"
 		if aNotaF[5] $ "B/D"
 			cAliasCF := "SA2"
@@ -542,52 +566,55 @@ static function DPreDanfePV(cModNF,cPedVen,cCliFor)
 	DbSelectArea(cAliasCF)
 	(cAliasCF)->(MsSeek(xFilial(cAliasCF)+cCliFor,.F.))
 
-	AAdd(aDestinat,(cAliasCF)->&(aCampo[nIndice1][1]))
-	AAdd(aDestinat,AllTrim((cAliasCF)->&(aCampo[nIndice1][2])))
-	AAdd(aDestinat,(cAliasCF)->&(aCampo[nIndice1][3]))
-	AAdd(aDestinat,AllTrim((cAliasCF)->&(aCampo[nIndice1][4])))
-	AAdd(aDestinat,AllTrim((cAliasCF)->&(aCampo[nIndice1][6])))
-	AAdd(aDestinat,Transf((cAliasCF)->&(aCampo[nIndice1][7]),"@R 99999-999"))
-	AAdd(aDestinat,AllTrim((cAliasCF)->&(aCampo[nIndice1][8])))
-	AAdd(aDestinat,AllTrim((cAliasCF)->&(aCampo[nIndice1][9]))+AllTrim((cAliasCF)->&(aCampo[nIndice1][10])))
-	AAdd(aDestinat,(cAliasCF)->&(aCampo[nIndice1][11]))
-	AAdd(aDestinat,AllTrim((cAliasCF)->&(aCampo[nIndice1][12])))
-	AAdd(aDestinat,AllTrim((cAliasCF)->&(aCampo[nIndice1][13])))
+	AAdd(aDestinat, (cAliasCF)->&(aCampo[nIndice1][1]))
+	AAdd(aDestinat, AllTrim((cAliasCF)->&(aCampo[nIndice1][2])))
+	AAdd(aDestinat, (cAliasCF)->&(aCampo[nIndice1][3]))
+	AAdd(aDestinat, AllTrim((cAliasCF)->&(aCampo[nIndice1][4])))
+	AAdd(aDestinat, AllTrim((cAliasCF)->&(aCampo[nIndice1][6])))
+	AAdd(aDestinat, Transf((cAliasCF)->&(aCampo[nIndice1][7]),"@R 99999-999"))
+	AAdd(aDestinat, AllTrim((cAliasCF)->&(aCampo[nIndice1][8])))
+	AAdd(aDestinat, AllTrim((cAliasCF)->&(aCampo[nIndice1][9]))+AllTrim((cAliasCF)->&(aCampo[nIndice1][10])))
+	AAdd(aDestinat, (cAliasCF)->&(aCampo[nIndice1][11]))
+	AAdd(aDestinat, AllTrim((cAliasCF)->&(aCampo[nIndice1][12])))
+	AAdd(aDestinat, AllTrim((cAliasCF)->&(aCampo[nIndice1][13])))
 
-	AAdd(aTotais,"")
-	AAdd(aTotais,"")
-	AAdd(aTotais,"")
-	AAdd(aTotais,"")
-	AAdd(aTotais,"")
-	AAdd(aTotais,"")
-	AAdd(aTotais,"")
-	AAdd(aTotais,"")
-	AAdd(aTotais,"")
-	AAdd(aTotais,"")
-	AAdd(aTotais,"")
-	AAdd(aTotais,"")
-	AAdd(aTotais,"")
+	//----------------------------------------------------------------------
+	// aTotais — inicializado vazio, preenchido após MaFis*
+	//----------------------------------------------------------------------
+	AAdd(aTotais,"")   // [01] BASE ICMS
+	AAdd(aTotais,"")   // [02] VALOR ICMS
+	AAdd(aTotais,"")   // [03] BASE ICMS ST
+	AAdd(aTotais,"")   // [04] VALOR ICMS ST
+	AAdd(aTotais,"")   // [05] VALOR MERCADORIA
+	AAdd(aTotais,"")   // [06] FRETE
+	AAdd(aTotais,"")   // [07] SEGURO
+	AAdd(aTotais,"")   // [08] DESCONTO
+	AAdd(aTotais,"")   // [09] OUTRAS DESPESAS
+	AAdd(aTotais,"")   // [10] VALOR PIS
+	AAdd(aTotais,"")   // [11] VALOR COFINS
+	AAdd(aTotais,"")   // [12] VALOR IPI
+	AAdd(aTotais,"")   // [13] VALOR TOTAL
 
 	for m := 1 to _MAXIMP
 		AAdd(aTot,0)
 	next
 
+	//----------------------------------------------------------------------
+	// Transportadora (SA4)
+	//----------------------------------------------------------------------
 	DbSelectArea("SA4")
-
 	if SA4->(MsSeek(xFilial("SA4")+aNotaF[9],.F.))
-		AAdd(aTransp,AllTrim(SA4->A4_NOME))
-
+		AAdd(aTransp, AllTrim(SA4->A4_NOME))
 		if Len(AllTrim(SA4->A4_CGC)) == 14
 			cAux := Transf(SA4->A4_CGC,"@R 99.999.999/9999-99")
 		else
 			cAux := Transf(SA4->A4_CGC,"@R 999.999.999-99")
 		endif
-
-		AAdd(aTransp,cAux)
-		AAdd(aTransp,AllTrim(SA4->A4_END))
-		AAdd(aTransp,AllTrim(SA4->A4_MUN))
-		AAdd(aTransp,SA4->A4_EST)
-		AAdd(aTransp,IIf(Empty(SA4->A4_INSEST),"ISENTO",AllTrim(SA4->A4_INSEST)))
+		AAdd(aTransp, cAux)
+		AAdd(aTransp, AllTrim(SA4->A4_END))
+		AAdd(aTransp, AllTrim(SA4->A4_MUN))
+		AAdd(aTransp, SA4->A4_EST)
+		AAdd(aTransp, IIf(Empty(SA4->A4_INSEST),"ISENTO",AllTrim(SA4->A4_INSEST)))
 	else
 		AAdd(aTransp,"")
 		AAdd(aTransp,"")
@@ -598,40 +625,35 @@ static function DPreDanfePV(cModNF,cPedVen,cCliFor)
 	endif
 
 	do case
-	case aNotaF[11] == "F"
-		AAdd(aTransp,"0")
-	case aNotaF[11] == "C"
-		AAdd(aTransp,"1")
-	case aNotaF[11] == "T"
-		AAdd(aTransp,"2")
-	case aNotaF[11] == "S"
-		AAdd(aTransp,"9")
-	otherwise
-		AAdd(aTransp,"1")
+	case aNotaF[11] == "F" ; AAdd(aTransp,"0")
+	case aNotaF[11] == "C" ; AAdd(aTransp,"1")
+	case aNotaF[11] == "T" ; AAdd(aTransp,"2")
+	case aNotaF[11] == "S" ; AAdd(aTransp,"9")
+	otherwise              ; AAdd(aTransp,"1")
 	endcase
 
 	AAdd(aTransp,"")
-	AAdd(aTransp,aNotaF[12])
+	AAdd(aTransp, aNotaF[12])
 	AAdd(aTransp,"")
 
-	if !Empty(aNotaF[14])
-		AAdd(aTransp,AllTrim(Str(Round(aNotaF[14],0))))
+	if !Empty(AllTrim(aNotaF[13])) .and. Val(aNotaF[13]) > 0
+		AAdd(aTransp, AllTrim(Str(Round(Val(aNotaF[13]),0))))
 	else
 		AAdd(aTransp,"")
 	endif
 
-	AAdd(aTransp,aNotaF[15])
+	AAdd(aTransp, aNotaF[14])
 	AAdd(aTransp,"")
 	AAdd(aTransp,"")
 
-	if !Empty(aNotaF[16])
-		AAdd(aTransp,Transf(aNotaF[16],"@E 999999.999"))
+	if !Empty(AllTrim(aNotaF[15])) .and. Val(aNotaF[15]) > 0
+		AAdd(aTransp, Transf(Val(aNotaF[15]),"@E 999999.999"))
 	else
 		AAdd(aTransp,"")
 	endif
 
-	if !Empty(aNotaF[17])
-		AAdd(aTransp,Transf(aNotaF[17],"@E 999999.999"))
+	if !Empty(AllTrim(aNotaF[16])) .and. Val(aNotaF[16]) > 0
+		AAdd(aTransp, Transf(Val(aNotaF[16]),"@E 999999.999"))
 	else
 		AAdd(aTransp,"")
 	endif
@@ -641,74 +663,194 @@ static function DPreDanfePV(cModNF,cPedVen,cCliFor)
 	AAdd(aISSQN,"")
 	AAdd(aISSQN,"")
 
+	//======================================================================
+	// CÁLCULO FISCAL SIMULADO — MaFisIni / MaFisAdd / MaFisRet / MaFisEnd
+	//======================================================================
+
+	// Garante posicionamento correto nas tabelas usadas pelo MaFis*
+	DbSelectArea("SC5")
+	SC5->(DbSetOrder(1))
+	SC5->(MsSeek(xFilial("SC5")+cPedVen,.F.))
 	DbSelectArea("SC6")
 	SC6->(DbSetOrder(1))
-	SC6->(MsSeek(xFilial("SC6")+aNotaF[2],.F.))
+	DbSelectArea("SB1")
+	SB1->(DbSetOrder(1))
 
-	nItem := 0
+	//-- Inicializa engine fiscal com dados do cabeçalho do pedido ----------
+	MaFisIni(;
+		SC5->C5_CLIENTE,;                           // 01 - Código do cliente
+	SC5->C5_LOJACLI,;                           // 02 - Loja do cliente
+	IIf(SC5->C5_TIPO $ "D;B","F","C"),;         // 03 - C=Cliente / F=Fornecedor
+	SC5->C5_TIPO,;                              // 04 - Tipo da NF
+	SC5->C5_TIPOCLI,;                           // 05 - Tipo do cliente
+	MaFisRelImp("MT100",{"SF2","SD2"}),;        // 06 - Relação de impostos suportados
+	,;                                          // 07 - Tipo de complemento (padrão)
+	,;                                          // 08 - Permite impostos no rodapé (padrão)
+	"SB1",;                                     // 09 - Alias do cadastro de produtos
+	"MATA461";                                  // 10 - Nome da rotina
+	)
 
-	while !SC6->(Eof()) .and. SC6->C6_NUM == aNotaF[2]
-		cDescri := AllTrim(SC6->C6_DESCRI)
-		cNcm := IIf(SB1->(MsSeek(xFilial("SB1")+SC6->C6_PRODUTO,.F.)),AllTrim(SB1->B1_POSIPI),"")
-		cTes := SC6->C6_TES
+	//-- Primeira passagem: adiciona itens à engine fiscal ------------------
+	SC6->(MsSeek(xFilial("SC6")+cPedVen,.F.))
+	aAreaBkp := SC6->(GetArea())
+	nItAtu   := 0
 
-		if (nInd := AScan(aTes,{|x| x[1] == cTes})) == 0
-			AAdd(aTes,{cTes,IIf(SF4->(MsSeek(xFilial("SF4")+cTes,.F.)),AllTrim(SF4->F4_TEXTO),""),AllTrim(SC6->C6_CF)})
+	while !SC6->(Eof()) .and. SC6->C6_NUM == cPedVen
+		nItAtu++
+		SB1->(MsSeek(xFilial("SB1")+SC6->C6_PRODUTO,.F.))
 
-			aNotaF[10] := AllTrim(SF4->F4_TEXTO)+"/"
-		endif
+		MaFisAdd(;
+			SC6->C6_PRODUTO,;    // 01 - Código do produto         (obrigatório)
+		SC6->C6_TES,;        // 02 - Código do TES             (obrigatório)
+		SC6->C6_QTDVEN,;     // 03 - Quantidade                (obrigatório)
+		SC6->C6_PRCVEN,;     // 04 - Preço unitário            (obrigatório)
+		SC6->C6_VALDESC,;    // 05 - Desconto do item
+		SC6->C6_NFORI,;      // 06 - NF original (devolução)
+		SC6->C6_SERIORI,;    // 07 - Série NF original
+		0,;                  // 08 - RecNo NF original SD1/SD2
+		0,;                  // 09 - Valor frete do item
+		0,;                  // 10 - Valor despesa do item
+		0,;                  // 11 - Valor seguro do item
+		0,;                  // 12 - Valor frete autônomo
+		SC6->C6_VALOR,;      // 13 - Valor da mercadoria       (obrigatório)
+		0,;                  // 14 - Valor da embalagem
+		SB1->(RecNo()),;     // 15 - RecNo do SB1
+		0;                   // 16 - RecNo do SF4
+		)
 
-		nTotIpi := 0
-
-		AAdd(aItens,{Left(SC6->C6_PRODUTO,6),;
-			MemoLine(cDescri,MAXITEMC,1),;
-			cNcm,;
-			SC6->C6_CLASFIS,;
-			SC6->C6_CF,;
-			SC6->C6_UM,;
-			AllTrim(Transf(SC6->C6_QTDVEN,PesqPict("SC6","C6_QTDVEN"))),;
-			AllTrim(Transf(SC6->C6_PRCVEN,PesqPict("SC6","C6_PRCVEN"))),;
-			AllTrim(Transf(SC6->C6_VALOR,PesqPict("SC6","C6_VALOR"))),;
-			"",;
-			"",;
-			"",;
-			"",;
-			"",;
-			"",;
-			""})
-
-		nItem++
-
-		if MLCount(cDescri,MAXITEMC) > 1
-			for k := 2 to MLCount(cDescri,MAXITEMC)
-				AAdd(aItens,{"",MemoLine(cDescri,MAXITEMC,k),"","","","","","","","","","","","","",""})
-
-				nItem++
-			next
-		endif
-
-		aTot[1] := 0
-		aTot[2] := 0
-
-		nTotNota += (SC6->C6_VALOR + nTotIpi)
+		// Informa o valor da mercadoria à engine
+		MaFisLoad("IT_VALMERC", SC6->C6_VALOR, nItAtu)
 
 		SC6->(DbSkip())
 	enddo
 
-	aTotais[1]  := ""
-	aTotais[2]  := ""
-	aTotais[3]  := ""
-	aTotais[4]  := ""
-	aTotais[5]  := Transf(nTotNota,"@E 9,999,999,999,999.99")  // VALOR MERCADORIA
-	aTotais[6]  := ""
-	aTotais[7]  := ""
-	aTotais[8]  := ""
-	aTotais[9]  := ""
-	aTotais[10] := ""  // PIS  - vazio pois vem do pedido, não tem ainda
-	aTotais[11] := ""  // COFINS - vazio pois vem do pedido, não tem ainda
-	aTotais[12] := ""  // IPI
-	aTotais[13] := Transf(nTotNota,"@E 9,999,999,999,999.99")  // VALOR TOTAL
+	//-- Aplica totais do cabeçalho (frete, seguro, desconto, despesa) ------
+	MaFisAlt("NF_FRETE",    SC5->C5_FRETE)
+	MaFisAlt("NF_SEGURO",   SC5->C5_SEGURO)
+	MaFisAlt("NF_DESPESA",  SC5->C5_DESPESA)
+	MaFisAlt("NF_AUTONOMO", SC5->C5_FRETAUT)
 
+	if SC5->C5_DESCONT > 0
+		MaFisAlt("NF_DESCONTO", Min(MaFisRet(,"NF_VALMERC") - 0.01, SC5->C5_DESCONT + MaFisRet(,"NF_DESCONTO")))
+	endif
+	if SC5->C5_PDESCAB > 0
+		MaFisAlt("NF_DESCONTO", A410Arred(MaFisRet(,"NF_VALMERC") * SC5->C5_PDESCAB / 100, "C6_VALOR") + MaFisRet(,"NF_DESCONTO"))
+	endif
+
+	//-- Segunda passagem: coleta impostos por item ANTES de MaFisEnd() ----
+	// IMPORTANTE: MaFisRet() só funciona antes de MaFisEnd().
+	// Aqui salvamos todos os valores por item em aImpostoItem.
+	RestArea(aAreaBkp)
+	nItAtu := 0
+
+	while !SC6->(Eof()) .and. SC6->C6_NUM == cPedVen
+		nItAtu++
+
+		AAdd(aImpostoItem,{;
+		MaFisRet(nItAtu,"IT_BASEICM"),;   // [1] Base ICMS
+		MaFisRet(nItAtu,"IT_VALICM"),;    // [2] Valor ICMS
+		MaFisRet(nItAtu,"IT_VALIPI"),;    // [3] Valor IPI
+		MaFisRet(nItAtu,"IT_ALIQICM"),;   // [4] Alíquota ICMS
+		MaFisRet(nItAtu,"IT_ALIQIPI"),;   // [5] Alíquota IPI
+		MaFisRet(nItAtu,"IT_PIS252"),;    // [6] Valor PIS
+		MaFisRet(nItAtu,"IT_COF252")})    // [7] Valor COFINS
+
+		// Acumula totalizadores	
+		nTotBaseICM += MaFisRet(nItAtu,"IT_BASEICM")
+		nTotValICM  += MaFisRet(nItAtu,"IT_VALICM")
+		nTotBaseST  += MaFisRet(nItAtu,"IT_BASESOL")
+		nTotValST   += MaFisRet(nItAtu,"IT_VALSOL")
+		nTotIPI     += MaFisRet(nItAtu,"IT_VALIPI")
+		nTotPIS     += MaFisRet(nItAtu,"IT_PIS252")
+		nTotCOFINS  += MaFisRet(nItAtu,"IT_COF252")
+		nTotNota    += SC6->C6_VALOR
+
+		SC6->(DbSkip())
+	enddo
+
+	// Totais do documento
+	nTotFrete := MaFisRet(,"NF_FRETE")
+	nTotGeral := MaFisRet(,"NF_TOTAL")
+
+	// Encerra a engine fiscal — após isso MaFisRet() não funciona mais
+	MaFisEnd()
+
+	//-- Preenche aTotais com os valores simulados --------------------------
+	aTotais[01] := Transf(nTotBaseICM,"@E 9,999,999,999,999.99")  // BASE ICMS
+	aTotais[02] := Transf(nTotValICM, "@E 9,999,999,999,999.99")  // VALOR ICMS
+	aTotais[03] := Transf(nTotBaseST, "@E 9,999,999,999,999.99")  // BASE ICMS ST
+	aTotais[04] := Transf(nTotValST,  "@E 9,999,999,999,999.99")  // VALOR ICMS ST
+	aTotais[05] := Transf(nTotNota,   "@E 9,999,999,999,999.99")  // VALOR MERCADORIA
+	aTotais[06] := Transf(nTotFrete,  "@E 9,999,999,999,999.99")  // FRETE
+	aTotais[07] := Transf(SC5->C5_SEGURO,  "@E 9,999,999,999,999.99")  // SEGURO
+	aTotais[08] := Transf(SC5->C5_DESCONT, "@E 9,999,999,999,999.99")  // DESCONTO
+	aTotais[09] := Transf(SC5->C5_DESPESA, "@E 9,999,999,999,999.99")  // OUTRAS DESPESAS
+	aTotais[10] := Transf(nTotPIS,    "@E 9,999,999,999,999.99")  // VALOR PIS
+	aTotais[11] := Transf(nTotCOFINS, "@E 9,999,999,999,999.99")  // VALOR COFINS
+	aTotais[12] := Transf(nTotIPI,    "@E 9,999,999,999,999.99")  // VALOR IPI
+	aTotais[13] := Transf(nTotGeral,  "@E 9,999,999,999,999.99")  // VALOR TOTAL
+
+	//======================================================================
+	// FIM DO CÁLCULO FISCAL
+	//======================================================================
+
+	//----------------------------------------------------------------------
+	// Monta aItens (terceira passagem na SC6) usando aImpostoItem
+	//----------------------------------------------------------------------
+	DbSelectArea("SC6")
+	SC6->(DbSetOrder(1))
+	SC6->(MsSeek(xFilial("SC6")+cPedVen,.F.))
+
+	nItem  := 0
+	nItAtu := 0
+
+	while !SC6->(Eof()) .and. SC6->C6_NUM == cPedVen
+		nItAtu++
+		cDescri := AllTrim(SC6->C6_DESCRI)
+		cNcm    := IIf(SB1->(MsSeek(xFilial("SB1")+SC6->C6_PRODUTO,.F.)),AllTrim(SB1->B1_POSIPI),"")
+		cTes    := SC6->C6_TES
+
+		if (nInd := AScan(aTes,{|x| x[1] == cTes})) == 0
+			AAdd(aTes,{cTes,IIf(SF4->(MsSeek(xFilial("SF4")+cTes,.F.)),AllTrim(SF4->F4_TEXTO),""),AllTrim(SC6->C6_CF)})
+			aNotaF[10] := AllTrim(SF4->F4_TEXTO)+"/"
+		endif
+
+		// Recupera impostos calculados pelo MaFis* para este item
+		// aImpostoItem[nItAtu] = {baseICM,valICM,valIPI,alqICM,alqIPI,valPIS,valCOF}
+		AAdd(aItens,{;
+			Left(SC6->C6_PRODUTO,6),;                                                            // [01] Código
+		MemoLine(cDescri,MAXITEMC,1),;                                                        // [02] Descrição linha 1
+		cNcm,;                                                                                // [03] NCM
+		SC6->C6_CLASFIS,;                                                                     // [04] CST
+		SC6->C6_CF,;                                                                          // [05] CFOP
+		SC6->C6_UM,;                                                                          // [06] Unidade
+		AllTrim(Transf(SC6->C6_QTDVEN,PesqPict("SC6","C6_QTDVEN"))),;                       // [07] Quantidade
+		AllTrim(Transf(SC6->C6_PRCVEN,PesqPict("SC6","C6_PRCVEN"))),;                       // [08] Valor Unitário
+		AllTrim(Transf(SC6->C6_VALOR, PesqPict("SC6","C6_VALOR"))),;                        // [09] Valor Total
+		AllTrim(Transf(aImpostoItem[nItAtu][1],PesqPict("SC6","C6_VALOR"))),;               // [10] Base ICMS
+		AllTrim(Transf(aImpostoItem[nItAtu][2],PesqPict("SC6","C6_VALOR"))),;               // [11] Valor ICMS
+		AllTrim(Transf(aImpostoItem[nItAtu][3],PesqPict("SC6","C6_VALOR"))),;               // [12] Valor IPI
+		AllTrim(Transf(aImpostoItem[nItAtu][4],"@E 99.99%")),;                              // [13] Alíquota ICMS
+		AllTrim(Transf(aImpostoItem[nItAtu][5],"@E 99.99%")),;                              // [14] Alíquota IPI
+		AllTrim(Transf(aImpostoItem[nItAtu][6],PesqPict("SC6","C6_VALOR"))),;               // [15] Valor PIS
+		AllTrim(Transf(aImpostoItem[nItAtu][7],PesqPict("SC6","C6_VALOR")))})               // [16] Valor COFINS
+
+		nItem++
+
+		// Linhas de continuação da descrição (quebra de texto)
+		if MLCount(cDescri,MAXITEMC) > 1
+			for k := 2 to MLCount(cDescri,MAXITEMC)
+				AAdd(aItens,{"",MemoLine(cDescri,MAXITEMC,k),"","","","","","","","","","","","","",""})
+				nItem++
+			next
+		endif
+
+		SC6->(DbSkip())
+	enddo
+
+	//----------------------------------------------------------------------
+	// Cálculo do número de folhas
+	//----------------------------------------------------------------------
 	nItem -= MAXITEM
 	lFlag := .T.
 
@@ -722,9 +864,10 @@ static function DPreDanfePV(cModNF,cPedVen,cCliFor)
 	enddo
 
 	cProjetos := "Projeto(s): "+Projetos(aNotaF[2],"",Left(aNotaF[4],6),Right(aNotaF[4],2),"SC6")
-	cMensagem := ""
+	cMensagem := aNotaF[17]
 	cResFisco := ""
 return
+
 
 //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
 //³ IMPRESSAO DA PRE-DANFE                                                 ³
@@ -1261,38 +1404,64 @@ return
 
 //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
 //³ CALCULA TAMANHO DE CADA COLUNA DOS ITENS                               ³
+//³                                                                        ³
+//³ Colunas (14 no total, total disponível = 603 pts):                     ³
+//³  [01] COD.PROD   [02] DESCRIÇÃO  [03] NCM/SH   [04] CST               ³
+//³  [05] CFOP       [06] UN         [07] QUANT.    [08] V.UNITARIO        ³
+//³  [09] V.TOTAL    [10] BC.ICMS    [11] V.ICMS    [12] V.IPI             ³
+//³  [13] A.ICMS     [14] A.IPI                                            ³
+//³                                                                        ³
+//³ Estratégia:                                                            ³
+//³  - Colunas fixas recebem tamanho mínimo justo para o conteúdo          ³
+//³  - Coluna DESCRIÇÃO (col 2) recebe toda a sobra (mín 80 garantido)     ³
+//³  - Ajuste dinâmico: cada coluna cresce até o MAX conforme conteúdo     ³
+//³  - Ao crescer uma coluna fixa, desconta da DESCRIÇÃO                   ³
 //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
-static function RetTamCol(aCabec,aValores,oPrinter,oFontCabec,oFont)
-	local aTamCol  := {}
-	local aTamMin  := {}
-	local aTamMax  := {}
-	local nAux     := 0
-	local nX       := 0
-	local nY       := 0
-	local nTxtW    := 0
-	local nTotal   := 0
-	local nSobra   := 0
+static function RetTamCol(aCabec, aValores, oPrinter, oFontCabec, oFont)
+	local aTamCol := {}
+	local aTamMin := {}
+	local aTamMax := {}
+	local nAux    := 0
+	local nX      := 0
+	local nY      := 0
+	local nTxtW   := 0
+	local nTotal  := 0
+	local nSobra  := 0
 
-	// MIN e MAX por coluna (em pontos FWMSPrinter) — total disponível = 603
-	// Ordem: COD.PROD | DESCR | NCM/SH | CST | CFOP | UN | QUANT | V.UNIT | V.TOTAL | BC.ICMS | V.ICMS | V.IPI | A.ICMS | A.IPI | V.PIS | V.COFINS
-	// Descrição (col 2) começa com 0 — recebe a sobra no final
-	aTamMin := { 30,  0, 36, 18, 28, 14, 32, 40, 40, 36, 32, 32, 24, 24 }
-	aTamMax := { 50,  0, 50, 28, 36, 22, 45, 55, 55, 50, 44, 44, 32, 32 }
+	// -----------------------------------------------------------------
+	// Mínimos por coluna — soma exata de 603 (descrição recebe a sobra)
+	// Col:  01   02    03   04   05   06   07   08   09   10   11   12   13   14
+	aTamMin := { 32,  221,  38,  18,  22,  14,  30,  38,  38,  36,  32,  30,  28,  26 }
 
-	// Inicializa com mínimos
+	// Máximos por coluna — limita o crescimento dinâmico de cada coluna
+	// A descrição (col 2) recebe o que sobrar (mín 80 garantido)
+	// Col:  01   02   03   04   05   06   07   08   09   10   11   12   13   14
+	aTamMax := { 45,   0,  50,  24,  30,  20,  42,  50,  50,  48,  44,  42,  36,  34 }
+
+	// Inicializa todas as colunas com seus mínimos
 	for nX := 1 to Len(aCabec)
 		AAdd(aTamCol, aTamMin[nX])
 	next nX
 
-	// Para cada coluna EXCETO Descrição (col 2):
-	// calcula o tamanho real do conteúdo e limita entre MIN e MAX
+	// -----------------------------------------------------------------
+	// Ajuste dinâmico: mede o conteúdo real de cada coluna fixa
+	// e expande até o MAX se necessário
+	// (Descrição col 2 é ignorada aqui — ela recebe a sobra no final)
+	// -----------------------------------------------------------------
 	for nX := 1 to Len(aValores[1])
 		if nX == 2
-			loop
+			loop  // descrição calculada depois
 		endif
 
 		nAux := aTamMin[nX]
 
+		// Mede o cabeçalho da coluna
+		nTxtW := oPrinter:GetTextWidth(aCabec[nX], oFontCabec) + 6
+		if nTxtW > nAux
+			nAux := nTxtW
+		endif
+
+		// Mede cada valor de conteúdo da coluna
 		for nY := 1 to Len(aValores[1][nX])
 			if !Empty(AllTrim(aValores[1][nX][nY]))
 				nTxtW := oPrinter:GetTextWidth(AllTrim(aValores[1][nX][nY]), oFont) + 6
@@ -1302,11 +1471,14 @@ static function RetTamCol(aCabec,aValores,oPrinter,oFontCabec,oFont)
 			endif
 		next nY
 
-		// Limita ao máximo da coluna
+		// Limita ao máximo definido para a coluna
 		aTamCol[nX] := IIf(nAux > aTamMax[nX], aTamMax[nX], nAux)
 	next nX
 
-	// Soma total das colunas fixas (sem descrição)
+	// -----------------------------------------------------------------
+	// Descrição (col 2) recebe toda a sobra após somar as colunas fixas
+	// Mínimo garantido de 80 pontos para não colapsar a coluna
+	// -----------------------------------------------------------------
 	nTotal := 0
 	for nX := 1 to Len(aTamCol)
 		if nX != 2
@@ -1314,11 +1486,11 @@ static function RetTamCol(aCabec,aValores,oPrinter,oFontCabec,oFont)
 		endif
 	next nX
 
-	// Descrição recebe toda a sobra — mínimo garantido de 100
 	nSobra     := 603 - nTotal
-	aTamCol[2] := IIf(nSobra > 100, nSobra, 100)
+	aTamCol[2] := IIf(nSobra >= 80, nSobra, 80)
 
 return aTamCol
+
 
 //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
 //³ IMPRIMIR CABECALHO                                                     ³
@@ -1355,6 +1527,8 @@ static function Cabecalho(nLinha,lPrincipal)
 
 	// Logomarca da empresa — arquivo BMP deve estar na pasta Startpath
 	// Nome do arquivo: DANFE + cEmpAnt + cFilAnt + .BMP  (ex: DANFE0101.BMP)
+
+	// ROGRIGO - IMAGEM TOTVS
 	if File(aEmpresa[6])
 		oPrinter:SayBitmap(nLinha+ 008, 005, aEmpresa[6], 080, 080)
 	endif
