@@ -1,0 +1,352 @@
+#include "tlpp-core.th"
+#include "protheus.ch"
+
+/*/
+https://tdn.totvs.com/display/tec/Classe+TWsdlManager
+/*/
+
+user function rotolare(cAzione)
+	Local cBloco := '{|| Cavan'+cAzione+'() }'
+	Local bBloco := &cBloco
+
+	Eval(bBloco)
+
+Return(Nil)
+
+static Function CavanImportLists()
+	Local aArea      := FWGetArea()
+	Local cURL       := "http://192.168.10.231/servizi_xchange.asmx?WSDL"
+	Local cOperation := "ImportLists"
+	Local oWSDL
+	Local lRet
+	Local cMsgWS     := ""
+	Local cResp      := ""
+	Local cJsonResp  := ""
+
+	//Instancia em um objeto e desabilita o check de CAs em caso de http ao invés de https, referência:
+	//   https://centraldeatendimento.totvs.com/hc/pt-br/articles/5151712642839-Cross-Segmento-TOTVS-Backoffice-Linha-Protheus-ADVPL-Mensagem-An-exception-occurred-ar-1-0-WsdlParser-Exception-Could-not-parse-schema-http-schemas-xmlsoap-org-wsdl-
+	oWsdl          := TWSDLManager():New()
+	oWsdl:nTimeout := 120
+	oWsdl:bNoCheckPeerCert := .T.
+	oWsdl:lVerbose := .T.
+
+	//Faz o parse do WSDL
+	If oWsdl:ParseURL(cUrl)
+
+		// Lista as operações definidas. Passo opcional.
+		aOps := oWsdl:ListOperations()
+
+		//Define a operação que será consumida do WS
+		lRet := oWsdl:SetOperation(cOperation)
+
+		//Se deu certo, envia o texto e pega a resposta
+		If lRet
+
+			cUserIcam	:='1'
+			cProduto	:='produto1'
+			nQuantidade	:='1'
+
+			cMsgWS:=SetXmlMov('header',{'LOAD'})
+/*
+			aValues :={{'ListHead',;
+				{{'external_list_code',},;//Char 50 Yes List code
+			{'operation_type','VISUALIZATION'},;//Char 30 Yes,Indicates the operation typology:- VISUALIZATION
+			{'operation','LOAD'},;//Char 30 Yes,Purpose indicating the sign of the list:- LOAD and L for Entries;  DOWNLOAD and D for Exits
+			{'name',},;//Char 30 No,Name of the lists
+			{'description',},;//Char 250 No,description
+			{'user_id',cUserIcam},;//Char 30 Yes,The user you want to attribute the creation of the list. The user must be present in Icon
+			{'store_id',},;//Char 30 No,Storage system on which to run the list
+			{'workplace',},;//Char 30 No ,Access Opening on which you want to run the list
+			{'compartment_type_name',},;
+				{'compartment_name',},;
+				{'priority',}}},;//Num 2 No  Available starting from ICON 3.0.9. List priority from 1 (high) to 10 (low)
+			{'ListDetail', ;
+				{{'item_id',cProduto},;//Char 40 Yes Item to handle
+			{'quantity',nQuantidade},;//Num Yes Quantity to Load/Download
+			{'description',},;//Char 250 No Description of the detailed line
+			{'stock_id',},;//Char 40 No Lot to handle/manage
+			{'color',},;//Char 30 No Field will be handled by corresponding ICON optional feature. Color code binding with specific RGB code.
+			{'stock_date',},;//Char 14 No Stock creation date formatted like this yyyyMMddHHmmss
+			{'extra',}}};//Char 250 No Row decription. (Not visible in ICON)
+			}
+
+			For ni:=1 to Len(aValues)
+				for nj:= 1 to Len(aValues[ni,2])
+					If !Empty(aValues[ni,2,nj,2])
+						if oWsdl:SetValPar( aValues[ni,2,nj,1], {aValues[ni,1]}, aValues[ni,2,nj,2] )
+						else
+						EndIf
+					EndIf
+				Next nj
+			Next ni
+			oWsdl:SendSoapMsg()
+*/
+			aMov:={{'produto1','1'},{'produto2','2'}}
+
+			For ni:=1 to Len(aMov)
+				cMsgWS+=SetXmlMov('item',aMov[ni])
+			Next
+
+			cMsgWS+=SetXmlMov('footer')
+
+			oWsdl:SendSoapMsg(cMsgWs)
+			cResp := oWsdl:GetParsedResponse()
+
+			//Se houver resposta do WS
+			If ! Empty(cResp)
+				cJsonResp := SubStr(cResp, At("{", cResp))
+				ShowLog(cJsonResp)
+			else
+				If !Empty(cError := oWsdl:cError)
+					zConout('Erro ao executar ImportLists: '+cError)
+				endIf
+			EndIf
+		EndIf
+	EndIf
+
+	FWRestArea(aArea)
+
+Return
+
+static function SetXmlMov(cArea,aItem)
+	Local cMsgWS:=''
+	If cArea == 'header'
+		cMsgWS :='<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:tns="http://servizi_xchange.org/">'
+		cMsgWS +=' <soap:Header/>'
+		cMsgWS +=' <soap:Body>'
+		cMsgWS +=' 		<ser:ImportLists>'
+		cMsgWS +='         <ser:InputLists>'
+		cMsgWS +='            <ser:ListToImport>'
+		cMsgWS +='               <ser:ListHead>'
+		cMsgWS +='   			     <ser:external_list_code>LISTCODE</ser:external_list_code>'
+		cMsgWS +='      		     <ser:operation_type>VISUALIZATION</ser:operation_type>'
+		cMsgWS +='       			 <ser:operation>'+aItem[1]+'</ser:operation>' //Purpose indicating the sign of the list:- LOAD and L for Entries - DOWNLOAD and D for Exits
+//		cMsgWS +='        			 <ser:name>?</ser:name>'
+//		cMsgWS +='      			 <ser:description>?</ser:description>'
+		cMsgWS +='       			 <ser:user_id>"1"</ser:user_id>'
+/*		cMsgWS +='       			 <ser:store_id>?</ser:store_id>'
+		cMsgWS +='      			 <ser:workplace>?</ser:workplace>'
+		cMsgWS +='      			 <ser:compartment_type_name>?</ser:compartment_type_name>'
+		cMsgWS +='       			 <ser:compartment_name>?</ser:compartment_name>'
+		cMsgWS +='      		     <ser:priority>?</ser:priority>'*/
+		cMsgWS +='			     </ser:ListHead>'
+
+/*		cMsgWS +='   			     <ser:external_list_code>?</ser:external_list_code>'
+		cMsgWS +='      		     <ser:operation_type>?</ser:operation_type>'
+		cMsgWS +='       			 <ser:operation>?</ser:operation>'
+		cMsgWS +='        			 <ser:name>?</ser:name>'
+		cMsgWS +='      			 <ser:description>?</ser:description>'
+		cMsgWS +='       			 <ser:user_id>?</ser:user_id>'
+		cMsgWS +='       			 <ser:store_id>?</ser:store_id>'
+		cMsgWS +='      			 <ser:workplace>?</ser:workplace>'
+		cMsgWS +='      			 <ser:compartment_type_name>?</ser:compartment_type_name>'
+		cMsgWS +='       			 <ser:compartment_name>?</ser:compartment_name>'
+		cMsgWS +='      		     <ser:priority>?</ser:priority>'*/
+		cMsgWS +='			     </ser:ListHead>'
+	elseIf cArea=='item'
+		cMsgWS +='               <ser:ListDetail>'
+		cMsgWS +='                  <ser:item_id>'+aItem[1]+'</ser:item_id>'
+		cMsgWS +='                  <ser:quantity>'+aItem[2]+'</ser:quantity>'
+		cMsgWS +='               </ser:ListDetail>'
+/*	cMsgWS +='               <ser:ListDetail>'
+	cMsgWS +='                  <ser:item_id>?</ser:item_id>'
+	cMsgWS +='                  <ser:quantity>?</ser:quantity>'
+	cMsgWS +='                  <ser:description>?</ser:description>'
+	cMsgWS +='                  <ser:stock_id>?</ser:stock_id>'
+	cMsgWS +='                  <ser:color>?</ser:color>'
+	cMsgWS +='                  <ser:stock_date>?</ser:stock_date>'
+	cMsgWS +='                  <ser:extra>?</ser:extra>'
+	cMsgWS +='               </ser:ListDetail>'*/
+else
+	cMsgWS +='            </ser:ListToImport>'
+	cMsgWS +='         </ser:InputLists>'
+	cMsgWS +='         <ser:Output_Type>0</ser:Output_Type>'
+	cMsgWS +='      </ser:ImportLists>'
+	cMsgWS +='   </soap:Body>'
+	cMsgWS +='</soap:Envelope>'
+EndIf
+Return(cMsgWS)
+
+static function CavanImportItems()
+	Local cMsgWS
+	Local cURL       := "http://192.168.10.231/servizi_xchange.asmx?WSDL"
+	Local cOperation := "ImportItems"
+	Local nCont 	 := 0
+
+	oWsdl          := TWSDLManager():New()
+	oWsdl:nTimeout := 120
+//Wsdl:bNoCheckPeerCert := .T.
+	oWsdl:lVerbose := .T.
+	
+	//Faz o parse do WSDL
+	If oWsdl:ParseURL(cUrl)
+
+		//Define a operação que será consumida do WS
+		lRet := oWsdl:SetOperation(cOperation)
+
+ltrue:=oWsdl:AddHttpHeader('Content-Type', 'text/xml;charset=UTF-8' )
+ltrue:=oWsdl:AddHttpHeader('Connection','Keep-Alive')
+/*ltrue:=oWsdl:AddHttpHeader('Accept-Encoding','gzip,deflate')
+ltrue:=oWsdl:AddHttpHeader('SOAPAction','http://servizi_xchange.org/ImportItems')
+ltrue:=oWsdl:AddHttpHeader('Host','192.168.10.231')
+ltrue:=oWsdl:AddHttpHeader('User-Agent','Apache-HttpClient/4.5.5 (Java/17.0.12)')
+oWsdl:cEncoding:='UTF-8'*/
+
+		//Se deu certo, envia o texto e pega a resposta
+		If lRet
+
+			// Executa a query e abre a área de trabalho temporária
+			cAlias := MpSysOpenQuery('SELECT B1_COD,B1_DESC FROM '+RetSqlName('SB1')+" WHERE D_E_L_E_T_ = ' ' ")
+
+			// Verifica se a query foi aberta com sucesso
+			If Select(cAlias) == 0
+				MsgStop("Não foi possível abrir a query.", "Erro")
+				Return
+			EndIf
+
+			// Posiciona no início da área de trabalho
+			(cAlias)->(DbGoTop())
+
+			cMsgWS:=GetXmlB1(cAlias,'header')
+
+			// Percorre os registros retornados pela query
+			While !(cAlias)->(Eof()) .And. nCont<=10
+				nCont++
+				cMsgWS += GetXmlB1(cAlias,'item')
+				(cAlias)->(DbSkip())
+			EndDo
+			cMsgWS += GetXmlB1(cAlias,'footer')
+
+			cMsgWs:=SoapFixo()
+			oWsdl:SendSoapMsg(cMsgWs)
+			cResp := oWsdl:GetParsedResponse()
+
+			//Se houver resposta do WS
+			If ! Empty(cResp)
+				cJsonResp := SubStr(cResp, At("{", cResp))
+			else
+				If !Empty(cError := oWsdl:cError)
+					zConout('Erro ao executar ImportItems: '+cError)
+				endIf
+			EndIf
+
+			// Fecha a área de trabalho temporária
+			(cAlias)->(DbCloseArea())
+
+		else
+
+		EndIf
+	Else
+	EndIf
+
+return(Nil)
+
+static function GetXmlB1(cAlias,cArea)
+	Local cMsgWS
+	If 	cArea == 'header'
+		cMsgWS:='<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ser="http://servizi_xchange.org/">'+CRLF
+		cMsgWS+='   <soapenv:Header/>'+CRLF
+		cMsgWS+='   <soapenv:Body>'+CRLF
+		cMsgWS+='      <ser:ImportItems>'+CRLF
+		cMsgWS+='         <ser:Items>'+CRLF
+	ElseIf cArea == 'item'
+		cMsgWS:='            <ser:ItemToImport>'+CRLF
+		cMsgWS+='               <ser:item_id>'+(cAlias)->B1_COD+'</ser:item_id>'+CRLF
+		cMsgWS+='               <ser:description>'+(cAlias)->B1_DESC+'</ser:description>'+CRLF
+		cMsgWS+='               <ser:pickpolicy>FIFO</ser:pickpolicy>'+CRLF //Item picking policy• RANDOM• FIFO • LIFO Available starting from ICON 3.0.20. • FEFO 
+//		cMsgWS+='               <ser:minimuninventory>0</ser:minimuninventory>'
+		cMsgWS+='            </ser:ItemToImport>'+CRLF
+	else
+		cMsgWS:='         </ser:Items>'+CRLF
+		cMsgWS+='         <ser:Output_Type>0</ser:Output_Type>'+CRLF
+		cMsgWS+='      </ser:ImportItems>'+CRLF
+		cMsgWS+='   </soapenv:Body>'+CRLF
+		cMsgWS+='</soapenv:Envelope>'
+	EndIf
+Return(cMsgWS)
+
+static function CavanExportLists()
+	Local cMsgWS
+	Local cURL       := "http://192.168.10.231/servizi_xchange.asmx?WSDL"
+	Local cOperation := "ExportLists"
+	Local nCont 	 := 0
+
+	oWsdl          := TWSDLManager():New()
+	oWsdl:nTimeout := 120
+	oWsdl:bNoCheckPeerCert := .f.
+	oWsdl:lVerbose := .T.
+
+	//Faz o parse do WSDL
+	If oWsdl:ParseURL(cUrl)
+
+		//Define a operação que será consumida do WS
+		lRet := oWsdl:SetOperation(cOperation)
+
+		//Se deu certo, envia o texto e pega a resposta
+		If lRet
+
+			cMsgWS:='<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:ser="http://servizi_xchange.org/">'
+			cMsgWS+='   <soap:Header/>'
+			cMsgWS+='   <soap:Body>'
+			cMsgWS+='      <ser:ExportLists>'
+			cMsgWS+='         <ser:Output_Type>1</ser:Output_Type>'
+			cMsgWS+='      </ser:ExportLists>'
+			cMsgWS+='   </soap:Body>'
+			cMsgWS+='</soap:Envelope>'
+
+			oWsdl:SendSoapMsg(cMsgWs)
+			cResp := oWsdl:GetParsedResponse()
+
+			//Se houver resposta do WS
+			If ! Empty(cResp)
+				cJsonResp := SubStr(cResp, At("{", cResp))
+			else
+				If !Empty(cError := oWsdl:cError)
+					zConout('Erro ao executar ExportLists: '+cError)
+				endIf
+			EndIf
+
+		else
+
+		EndIf
+	Else
+	EndIf
+Return(Nil)
+
+static function zConout(cTexto)
+	FwLogMsg("INFO", , "", Procname(2), "", "01", cTexto, 0, -1, {})
+Return(Nil)
+
+static function SoapFixo()
+//envelope soap enviado pelo soapui
+
+cmsgWS:='<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ser="http://servizi_xchange.org/">'+CRLF
+cmsgWS+='   <soapenv:Header/>'+CRLF
+cmsgWS+='   <soapenv:Body>'+CRLF
+cmsgWS+='      <ser:ImportItems>'+CRLF
+//cmsgWS+='         <!--Optional:-->'+CRLF
+cmsgWS+='         <ser:Items>'+CRLF
+//cmsgWS+='            <!--Zero or more repetitions:-->'+CRLF
+cmsgWS+='            <ser:ItemToImport>'+CRLF
+//cmsgWS+='               <!--Optional:-->'+CRLF
+cmsgWS+='               <ser:item_id>3</ser:item_id>'+CRLF
+//cmsgWS+='               <!--Optional:-->'+CRLF
+cmsgWS+='               <ser:description>teste2</ser:description>'+CRLF
+//cmsgWS+='               <!--Optional:-->'+CRLF
+cmsgWS+='               <ser:pickpolicy>FIFO</ser:pickpolicy>'+CRLF
+cmsgWS+='            </ser:ItemToImport>'+CRLF
+//cmsgWS+='            <!--Zero or more repetitions:-->'+CRLF
+cmsgWS+='            <ser:ItemToImport>'+CRLF
+//cmsgWS+='               <!--Optional:-->'+CRLF
+cmsgWS+='               <ser:item_id>4</ser:item_id>'+CRLF
+//cmsgWS+='               <!--Optional:-->'+CRLF
+cmsgWS+='               <ser:description>teste2</ser:description>'+CRLF
+//cmsgWS+='               <!--Optional:-->'+CRLF
+cmsgWS+='               <ser:pickpolicy>FIFO</ser:pickpolicy>'+CRLF
+cmsgWS+='            </ser:ItemToImport>'+CRLF
+cmsgWS+='         </ser:Items>'+CRLF
+cmsgWS+='         <ser:Output_Type>0</ser:Output_Type>'+CRLF
+cmsgWS+='      </ser:ImportItems>'+CRLF
+cmsgWS+='   </soapenv:Body>'+CRLF
+cmsgWS+='</soapenv:Envelope>'
+return(cmsgWS)
