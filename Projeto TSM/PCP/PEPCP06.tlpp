@@ -1,0 +1,74 @@
+#include 'totvs.ch'
+#include 'tlpp-core.th'
+
+/*/{Protheus.doc} PA145GER
+O ponto de entrada PA145GER � executado ao finalizar a gera��o de todos os documentos do MRP (PCPA712, PCPA144 ou Resultados MRP).
+@type function
+@version 12.1.2310
+@author Fabio Gardino - fabio.gardino@totvs.com.br
+@since 27/05/2025
+@see https://tdn.totvs.com/pages/releaseview.action?pageId=614386233
+/*/
+User Function PEPCP06()
+	local aArea := FwGetArea() as array
+	local cOrigem := 'PCPA144' as character
+	local cTicket := PARAMIXB[1] as character
+	local oSQL := nil as object
+	local cConsulta := '' as character
+	local cQuery := '' as character
+
+	DbSelectArea('SC1')
+	SC1->(DbSetOrder(1))	//C1_FILIAL + C1_NUM + C1_ITEM + C1_ITEMGRD
+	SC1->(DbGoTop())
+
+	DbSelectArea('SB1')
+	SB1->(DbSetOrder(1))	//B1_FILIAL + B1_COD
+	SB1->(DbGoTop())
+	
+	DbSelectArea('SA2')
+	SA2->(DbSetOrder(1))
+	SA2->(DbGoTop())
+	
+	DbSelectArea('SA5')
+	SA5->(DbSetOrder(2))
+	SA5->(DbGoTop())
+
+	cQuery := "	SELECT
+	cQuery += "		SC1.R_E_C_N_O_ AS RECNO
+	cQuery += "	FROM
+	cQuery += "		? SC1
+	cQuery += "	WHERE
+	cQuery += "		SC1.C1_SEQMRP = ?
+	cQuery += "		AND SC1.C1_ORIGEM = ?
+	cQuery += "		AND SC1.D_E_L_E_T_ = ''
+	oSQL := FwExecStatement():New(cQuery)
+
+	oSQL:SetUnsafe(1, RetSqlName('SC1'))
+	oSQL:SetString(2, AllTrim(cTicket))
+	oSQL:SetString(3, AllTrim(cOrigem))
+
+	cConsulta := oSQL:OpenAlias()
+
+	while( (cConsulta)->(! Eof()) )
+		SC1->(DbGoTop())
+		SC1->(DbGoTo((cConsulta)->(RECNO)))
+
+		BEGIN TRANSACTION
+			if( reclock('SC1', .F.) )
+				SC1->C1_DINICOM := DaySub(SC1->C1_DATPRF, GETADVFVAL('SB1', 'B1_PE', xFIlial('SB1') + SC1->C1_PRODUTO, 1, ''))
+				SC1->C1_XPRECO := GETADVFVAL("SA5","A5_XPRECO",xFIlial("SA5") + SC1->C1_PRODUTO + SC1->C1_FORNECE + SC1->C1_LOJA, 2, '')
+				//SC1->C1_XDESCFO := GETADVFVAL("SA2","A2_NOME",xFIlial("SA2") + SC1->C1_FORNECE + SC1->C1_LOJA, 1, '')
+				SC1->C1_CONDPAG := GETADVFVAL('SA2', 'A2_COND', xFIlial('SA2') + SC1->C1_FORNECE + SC1->C1_LOJA, 1, '')
+				SC1->(MsUnlock())
+			endif
+		END TRANSACTION
+
+		(cConsulta)->(dbSkip())
+	enddo
+ 
+	(cConsulta)->(dbCloseArea())
+	SC1->(DbCloseArea())
+	SB1->(DbCloseArea())
+
+	FwRestArea(aArea)
+Return
