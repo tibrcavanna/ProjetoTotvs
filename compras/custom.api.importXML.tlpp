@@ -207,7 +207,8 @@ User Function nfeMensagens()
 		IF !SM4->( Deleted() ) .AND. SM4->M4_FILIAL == FWxFilial( 'SM4' )
 
 			jMensagem := JsonObject():New()
-			jMensagem[ 'cod' ] := EncodeUTF8( AllTrim( SM4->M4_CODIGO ) )
+			jMensagem[ 'cod'    ] := EncodeUTF8( AllTrim( SM4->M4_CODIGO ) )
+			jMensagem[ 'descri' ] := EncodeUTF8( AllTrim( SM4->M4_DESCR  ) )
 
 			aAdd( aMensagens, jMensagem )
 
@@ -253,6 +254,7 @@ User Function nfeMensagem()
 	IF !SM4->( EoF() ) .AND. SM4->M4_FILIAL == FWxFilial( 'SM4' ) .AND. AllTrim( SM4->M4_CODIGO ) == cCod
 
 		jMensagem[ 'cod'     ] := EncodeUTF8( AllTrim( SM4->M4_CODIGO ) )
+		jMensagem[ 'descri'  ] := EncodeUTF8( AllTrim( SM4->M4_DESCR  ) )
 		jResponse[ 'success' ] := .T.
 		jResponse[ 'message' ] := 'Mensagem encontrada'
 		jResponse[ 'data'    ] := jMensagem
@@ -577,8 +579,9 @@ User Function listTes()
 		IF !SF4->( Deleted() ) .AND. SF4->F4_FILIAL == FWxFilial( 'SF4' )
 
 			jTes := JsonObject():New()
-			jTes[ 'cod'  ] := EncodeUTF8( AllTrim( SF4->F4_CODIGO ) )
-			jTes[ 'tipo' ] := EncodeUTF8( AllTrim( SF4->F4_TIPO   ) )
+			jTes[ 'cod'    ] := EncodeUTF8( AllTrim( SF4->F4_CODIGO ) )
+			jTes[ 'descri' ] := EncodeUTF8( AllTrim( SF4->F4_TEXTO  ) )
+			jTes[ 'tipo'   ] := EncodeUTF8( AllTrim( SF4->F4_TIPO   ) )
 
 			aAdd( aTes, jTes )
 
@@ -622,8 +625,9 @@ User Function buscaTes()
 
 	IF SF4->( MsSeek( xFilial( 'SF4' ) + cCod ) )
 
-		jTes[ 'cod'  ] := EncodeUTF8( AllTrim( SF4->F4_CODIGO ) )
-		jTes[ 'tipo' ] := EncodeUTF8( AllTrim( SF4->F4_TIPO   ) )
+		jTes[ 'cod'    ] := EncodeUTF8( AllTrim( SF4->F4_CODIGO ) )
+		jTes[ 'descri' ] := EncodeUTF8( AllTrim( SF4->F4_TEXTO  ) )
+		jTes[ 'tipo'   ] := EncodeUTF8( AllTrim( SF4->F4_TIPO   ) )
 
 		jResponse[ 'success' ] := .T.
 		jResponse[ 'message' ] := 'TES encontrada'
