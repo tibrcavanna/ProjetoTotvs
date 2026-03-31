@@ -362,7 +362,7 @@ User Function buscaProduto()
 Return( .T. )
 
 // ====== Busca Códigos do Produto no Fornecedor via SA5 ======
-	@Post( '/api/nfe/codprf' )
+@Post( '/api/nfe/codprf' )
 User Function buscaCodPrf()
 
 	Local jResponse := JsonObject():New()  As Json
@@ -392,21 +392,24 @@ User Function buscaCodPrf()
 
 	cFornece := AllTrim( jBody[ 'fornecedor' ] )
 	cLoja    := AllTrim( jBody[ 'loja'       ] )
-	cProduto := AllTrim( jBody[ 'produto'    ] )
+	cProduto := AllTrim( jBody[ 'produto'    ] )  // A5_CODPRF (ex: 1600270103CROSS)
 
 	IF Empty( cLoja )
 		cLoja := '01'
 	EndIF
 
 	DBSelectArea( 'SA5' )
-	SA5->( DBSetOrder( 14 ) )
-	SA5->( MsSeek( FWxFilial( 'SA5' ) + cFornece + cLoja + cProduto ) )
+	SA5->( DBSetOrder( 14 ) )   // Ordem E: Filial + Fornece + Loja + CodPrf
+	SA5->( MsSeek( FWxFilial( 'SA5' )                        + ;
+		PadR( cFornece, TamSX3( 'A5_FORNECE' )[1] )          + ;
+		PadR( cLoja,    TamSX3( 'A5_LOJA'    )[1] )          + ;
+		PadR( cProduto, TamSX3( 'A5_CODPRF'  )[1] )          ) )
 
-	While SA5->( !EoF() )                       .And. ;
-			!SA5->( Deleted() )                   .And. ;
-			SA5->A5_FILIAL == FWxFilial( 'SA5' )  .And. ;
-			AllTrim( SA5->A5_FORNECE ) == cFornece .And. ;
-			AllTrim( SA5->A5_LOJA    ) == cLoja    .And. ;
+	While SA5->( !EoF() )                          .And. ;
+			!SA5->( Deleted() )                    .And. ;
+			SA5->A5_FILIAL   == FWxFilial( 'SA5' ) .And. ;
+			AllTrim( SA5->A5_FORNECE ) == cFornece  .And. ;
+			AllTrim( SA5->A5_LOJA    ) == cLoja     .And. ;
 			AllTrim( SA5->A5_CODPRF  ) == cProduto
 
 		jItem := JsonObject():New()
