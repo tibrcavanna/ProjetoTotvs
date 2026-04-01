@@ -11,6 +11,7 @@
 #define MAXITEMP2	49												// Máximo de produtos para a pagina 2 em diante
 #define MAXITEMC	38												// Máxima de caracteres por linha de produtos/serviços
 #define _MAXIMP		62												// Máximo de impostos calculados pela função FIMPOSTOS
+#define YMAX_ITENS_PAG1   860
 
 user function PREDANFE(cMod,cPV,cNF,cSE,cCLI)
 
@@ -264,8 +265,8 @@ static function DPreDanfeNF(cModNF,cNota,cSerie,cCliFor)
 		enddo
 	endif
 
-	aCampo := {{"F1_BASEICM","F1_VALICM","F1_VALMERC","F1_FRETE","F1_SEGURO","F1_DESCONT","F1_DESPESA","F1_VALIPI","F1_VALBRUT","F1_BRICMS","F1_ICMSRET","F1_VALIMP6","F1_VALIMP5"},;
-		{"F2_BASEICM","F2_VALICM","F2_VALMERC","F2_FRETE","F2_SEGURO","F2_DESCONT","F2_DESPESA","F2_VALIPI","F2_VALBRUT","F2_BRICMS","F2_ICMSRET","F2_VALIMP6","F2_VALIMP5"}}
+	aCampo := {{"F1_BASEICM","F1_VALICM","F1_VALMERC","F1_FRETE","F1_SEGURO","F1_DESCONT","F1_DESPESA","F1_VALIPI","F1_VALBRUT","F1_BRICMS","F1_ICMSRET","F1_VALPIS","F1_VALCOF"},;
+		{"F2_BASEICM","F2_VALICM","F2_VALMERC","F2_FRETE","F2_SEGURO","F2_DESCONT","F2_DESPESA","F2_VALIPI","F2_VALBRUT","F2_BRICMS","F2_ICMSRET","F2_VALPIS","F2_VALCOF"}}
 
 	AAdd(aTotais,Transf((cAliasNF)->&(aCampo[nIndice][1]),"@E 9,999,999,999,999.99"))   // [01] BASE ICMS
 	AAdd(aTotais,Transf((cAliasNF)->&(aCampo[nIndice][2]),"@E 9,999,999,999,999.99"))   // [02] VALOR ICMS
@@ -373,8 +374,8 @@ static function DPreDanfeNF(cModNF,cNota,cSerie,cCliFor)
 		nIndOrd := 1
 	endif
 
-	aCampo := {{"D1_DOC","D1_SERIE","D1_FORNECE","D1_LOJA","D1_DESCPRO","D1_COD","D1_TES","D1_CF","D1_CLASFIS","D1_UM","D1_QUANT","D1_VUNIT","D1_TOTAL","D1_BASEICM","D1_VALICM","D1_VALIPI","D1_PICM","D1_IPI","D1_VALISS","D1_VALIMP6","D1_VALIMP5"},;
-		{"D2_DOC","D2_SERIE","D2_CLIENTE","D2_LOJA","C6_DESCRI","D2_COD","D2_TES","D2_CF","D2_CLASFIS","D2_UM","D2_QUANT","D2_PRCVEN","D2_TOTAL","D2_BASEICM","D2_VALICM","D2_VALIPI","D2_PICM","D2_IPI","D2_VALISS","D2_VALIMP6","D2_VALIMP5"}}
+	aCampo := {{"D1_DOC","D1_SERIE","D1_FORNECE","D1_LOJA","D1_DESCPRO","D1_COD","D1_TES","D1_CF","D1_CLASFIS","D1_UM","D1_QUANT","D1_VUNIT","D1_TOTAL","D1_BASEICM","D1_VALICM","D1_VALIPI","D1_PICM","D1_IPI","D1_VALISS","D1_VALPIS","D1_VALCOF"},;
+		{"D2_DOC","D2_SERIE","D2_CLIENTE","D2_LOJA","C6_DESCRI","D2_COD","D2_TES","D2_CF","D2_CLASFIS","D2_UM","D2_QUANT","D2_PRCVEN","D2_TOTAL","D2_BASEICM","D2_VALICM","D2_VALIPI","D2_PICM","D2_IPI","D2_VALISS","D2_VALPIS","D2_VALCOF"}}
 
 	DbSelectArea(cAliasIT)
 	(cAliasIT)->(DbSetOrder(nIndOrd))
@@ -747,22 +748,22 @@ static function DPreDanfePV(cModNF, cPedVen, cCliFor)
 		nItAtu++
 
 		AAdd(aImpostoItem,{;
-		MaFisRet(nItAtu,"IT_BASEICM"),;   // [1] Base ICMS
+			MaFisRet(nItAtu,"IT_BASEICM"),;   // [1] Base ICMS
 		MaFisRet(nItAtu,"IT_VALICM"),;    // [2] Valor ICMS
 		MaFisRet(nItAtu,"IT_VALIPI"),;    // [3] Valor IPI
 		MaFisRet(nItAtu,"IT_ALIQICM"),;   // [4] Alíquota ICMS
 		MaFisRet(nItAtu,"IT_ALIQIPI"),;   // [5] Alíquota IPI
-		MaFisRet(nItAtu,"IT_PIS252"),;    // [6] Valor PIS
-		MaFisRet(nItAtu,"IT_COF252")})    // [7] Valor COFINS
+		MaFisRet(nItAtu,"IT_VALPIS"),;    // [6] Valor PIS
+		MaFisRet(nItAtu,"IT_VALCOF")})    // [7] Valor COFINS
 
-		// Acumula totalizadores	
+		// Acumula totalizadores
 		nTotBaseICM += MaFisRet(nItAtu,"IT_BASEICM")
 		nTotValICM  += MaFisRet(nItAtu,"IT_VALICM")
 		nTotBaseST  += MaFisRet(nItAtu,"IT_BASESOL")
 		nTotValST   += MaFisRet(nItAtu,"IT_VALSOL")
 		nTotIPI     += MaFisRet(nItAtu,"IT_VALIPI")
-		nTotPIS     += MaFisRet(nItAtu,"IT_PIS252")
-		nTotCOFINS  += MaFisRet(nItAtu,"IT_COF252")
+		nTotPIS     += MaFisRet(nItAtu,"IT_VALPIS")
+		nTotCOFINS  += MaFisRet(nItAtu,"IT_VALCOF")
 		nTotNota    += SC6->C6_VALOR
 
 		SC6->(DbSkip())
@@ -868,10 +869,6 @@ static function DPreDanfePV(cModNF, cPedVen, cCliFor)
 	cResFisco := ""
 return
 
-
-//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
-//³ IMPRESSAO DA PRE-DANFE                                                 ³
-//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
 static function PreDanfeProc(cModNF)
 
 	local lConverte := GetNewPar("MV_CONVERT",.F.)
@@ -879,6 +876,9 @@ static function PreDanfeProc(cModNF)
 	private nLinCalc := 0
 	private nFolImp := IIf(!Empty(aTabImposto),1,0)
 
+	// =====================================================================
+	// PÁGINA 1
+	// =====================================================================
 	oPrinter:StartPage()
 	Cabecalho(42,.T.)
 
@@ -902,7 +902,7 @@ static function PreDanfeProc(cModNF)
 
 	oPrinter:Say(205,283,"CNPJ/CPF",oFont08N)
 	oPrinter:Say(215,283,cAux,oFont08)
-	oPrinter:Line(217,000,217,500,ESPLIN)
+	oPrinter:Line(217,000,217,603,ESPLIN)
 	oPrinter:Say(224,002,"ENDEREÇO",oFont08N)
 	oPrinter:Say(234,002,aDestinat[4],oFont08)
 	oPrinter:Line(217,230,237,230,ESPLIN)
@@ -942,7 +942,6 @@ static function PreDanfeProc(cModNF)
 	oPrinter:Line(265,000,296,000,ESPLIN)
 
 	nCol := 067
-
 	for i := 1 to 8
 		oPrinter:Line(265,nCol,296,nCol,ESPLIN)
 		nCol += 67
@@ -952,7 +951,6 @@ static function PreDanfeProc(cModNF)
 	oPrinter:Line(296,000,296,603,ESPLIN)
 
 	nColuna := 002
-
 	if Len(aFaturas) > 0
 		for n := 1 to Len(aFaturas)
 			oPrinter:Say(273,nColuna,aFaturas[n][1]+" "+aFaturas[n][2],oFont08)
@@ -1071,16 +1069,15 @@ static function PreDanfeProc(cModNF)
 	oPrinter:Say(418,502,"PESO LIQUIDO",oFont08N)
 	oPrinter:Say(428,502,aTransp[16],oFont08)
 
+	// ------------------------------------------------------------------
+	// Cabeçalho da tabela de itens
+	// ------------------------------------------------------------------
 	oPrinter:Say(440,002,"DADOS DO PRODUTO / SERVIÇO",oFont08N)
 	oPrinter:Line(442,000,442,603,ESPLIN)
-	oPrinter:Line(442,000,678,000,ESPLIN)
-	oPrinter:Line(442,603,678,603,ESPLIN)
-	oPrinter:Line(678,000,678,603,ESPLIN)
 
 	aAuxCabec := {"COD. PROD","DESCRIÇÃO DO PROD./SERV.","NCM/SH","CST","CFOP","UN","QUANT.","V.UNITARIO","V.TOTAL","BC.ICMS","V.ICMS","V.IPI","A.ICMS","A.IPI"}
 
 	aAux := {{{},{},{},{},{},{},{},{},{},{},{},{},{},{}}}
-	nY := 0
 	nLenItens := Len(aItens)
 
 	for nX := 1 to nLenItens
@@ -1119,19 +1116,22 @@ static function PreDanfeProc(cModNF)
 
 	aTamCol := RetTamCol(aAuxCabec,aAux,oPrinter,oFont08,oFont08N)
 
+	// ------------------------------------------------------------------
+	// Desenha SOMENTE os textos do cabeçalho (linhas verticais depois)
+	// ------------------------------------------------------------------
 	nAuxH := 0
-
 	for nK := 1 to Len(aAuxCabec)
-		oPrinter:Line(442,nAuxH,678,nAuxH,2)
 		oPrinter:Say(450,nAuxH + 2,aAuxCabec[nK],oFont08N)
 		nAuxH += aTamCol[nK]
 	next nK
 
+	// ------------------------------------------------------------------
+	// Impressão dos itens — página 1
+	// ------------------------------------------------------------------
 	nLinha := 460
 	nK     := 1
 
-	while nK <= Len(aItens) .and. nK <= MAXITEM
-		nAuxH     := 0
+	while nK <= Len(aItens)
 		aDescLin  := {}
 		nAltLinha := 10
 
@@ -1142,6 +1142,10 @@ static function PreDanfeProc(cModNF)
 		endif
 
 		nAltLinha := 10 * Len(aDescLin)
+
+		if (nLinha + nAltLinha) > 860
+			exit
+		endif
 
 		nAuxH := 0
 		for nJ := 1 to 14
@@ -1160,116 +1164,179 @@ static function PreDanfeProc(cModNF)
 		nK++
 	enddo
 
-	oPrinter:Say(686,000,"CALCULO DO ISSQN",oFont08N)
-	oPrinter:Line(688,000,688,603,ESPLIN)
-	oPrinter:Line(688,000,711,000,ESPLIN)
-	oPrinter:Line(688,603,711,603,ESPLIN)
-	oPrinter:Line(711,000,711,603,ESPLIN)
-	oPrinter:Say(696,002,"INSCRIÇÃO MUNICIPAL",oFont08N)
-	oPrinter:Say(706,002,aISSQN[1],oFont08)
-	oPrinter:Line(688,150,711,150,ESPLIN)
-	oPrinter:Say(696,152,"VALOR TOTAL DOS SERVIÇOS",oFont08N)
-	oPrinter:Say(706,152,aISSQN[2],oFont08)
-	oPrinter:Line(688,300,711,300,ESPLIN)
-	oPrinter:Say(696,302,"BASE DE CÁLCULO DO ISSQN",oFont08N)
-	oPrinter:Say(706,302,aISSQN[3],oFont08)
-	oPrinter:Line(688,450,711,450,ESPLIN)
-	oPrinter:Say(696,452,"VALOR DO ISSQN",oFont08N)
-	oPrinter:Say(706,452,aISSQN[4],oFont08)
+	// ------------------------------------------------------------------
+	// Fecha o quadro dos itens com nLinha REAL (responsivo)
+	// Desenha aqui todas as linhas verticais das colunas de 442 até nLinha
+	// ------------------------------------------------------------------
+	oPrinter:Line(nLinha,000,nLinha,603,ESPLIN)
+	oPrinter:Line(442,000,nLinha,000,ESPLIN)
+	oPrinter:Line(442,603,nLinha,603,ESPLIN)
 
-	oPrinter:Say(719,000,"DADOS ADICIONAIS",oFont08N)
-	oPrinter:Line(721,000,721,603,ESPLIN)
-	oPrinter:Line(721,000,865,000,ESPLIN)
-	oPrinter:Line(721,603,865,603,ESPLIN)
-	oPrinter:Line(865,000,865,603,ESPLIN)
-	oPrinter:Say(729,002,"INFORMAÇÕES COMPLEMENTARES",oFont08N)
+	nAuxH := 0
+	for nK := 1 to Len(aAuxCabec)
+		oPrinter:Line(442,nAuxH,nLinha,nAuxH,2)
+		nAuxH += aTamCol[nK]
+	next nK
 
-	nLin := 741
+	// ------------------------------------------------------------------
+	// Verifica se todos os itens couberam na página 1
+	// ------------------------------------------------------------------
+	nItens := nK
 
+	if nItens > Len(aItens)
+		// Todos os itens couberam na página 1
+		if (nLinha + 180) <= 860
+			nLinha := nLinha + 15
+		else
+			oPrinter:EndPage()
+			oPrinter:StartPage()
+			nLinha := 005
+		endif
+	else
+		// Nem todos os itens couberam — fecha página 1
+		oPrinter:EndPage()
+
+		// ==============================================================
+		// PÁGINAS INTERMEDIÁRIAS
+		// ==============================================================
+		nFolha := 2
+
+		while nItens <= Len(aItens)
+			oPrinter:StartPage()
+			Cabecalho(0,.F.)
+
+			oPrinter:Say(161,002,"DADOS DO PRODUTO / SERVIÇO",oFont08N)
+			oPrinter:Line(163,000,163,603,ESPLIN)
+
+			// Desenha SOMENTE os textos do cabeçalho das colunas
+			nAuxH := 0
+			for nK := 1 to Len(aAuxCabec)
+				oPrinter:Say(171,nAuxH + 2,aAuxCabec[nK],oFont08N)
+				nAuxH += aTamCol[nK]
+			next nK
+
+			nLinha := 181
+
+			while nItens <= Len(aItens)
+				aDescLin  := {}
+				nAltLinha := 10
+
+				if !Empty(AllTrim(aItens[nItens][2]))
+					aDescLin := ImpQuebraTexto(AllTrim(aItens[nItens][2]), aTamCol[2] - 4, oPrinter, oFont08)
+				else
+					AAdd(aDescLin, "")
+				endif
+
+				nAltLinha := 10 * Len(aDescLin)
+
+				if (nLinha + nAltLinha) > 860
+					exit
+				endif
+
+				nAuxH := 0
+				for nJ := 1 to 14
+					if nJ != 2
+						oPrinter:Say(nLinha + 2, nAuxH + 2, aItens[nItens][nJ], oFont08)
+					endif
+					nAuxH += aTamCol[nJ]
+				next nJ
+
+				nColDesc := aTamCol[1]
+				for nLinDesc := 1 to Len(aDescLin)
+					oPrinter:Say(nLinha + 2 + ((nLinDesc - 1) * 10), nColDesc + 2, aDescLin[nLinDesc], oFont08)
+				next nLinDesc
+
+				nLinha += nAltLinha
+				nItens++
+			enddo
+
+			// ----------------------------------------------------------
+			// Fecha o quadro desta página intermediária com nLinha REAL
+			// Desenha aqui todas as linhas verticais de 163 até nLinha
+			// ----------------------------------------------------------
+			oPrinter:Line(nLinha,000,nLinha,603,ESPLIN)
+			oPrinter:Line(163,000,nLinha,000,ESPLIN)
+			oPrinter:Line(163,603,nLinha,603,ESPLIN)
+
+			nAuxH := 0
+			for nK := 1 to Len(aAuxCabec)
+				oPrinter:Line(163,nAuxH,nLinha,nAuxH,2)
+				nAuxH += aTamCol[nK]
+			next nK
+
+			nFolha++
+
+			if nItens > Len(aItens)
+				if (nLinha + 180) <= 860
+					nLinha := nLinha + 15
+				else
+					oPrinter:EndPage()
+					oPrinter:StartPage()
+					nLinha := 005
+				endif
+			else
+				oPrinter:EndPage()
+			endif
+		enddo
+	endif
+
+	// ==================================================================
+	// ISSQN + DADOS ADICIONAIS
+	// ==================================================================
+	oPrinter:Say(nLinha,000,"CALCULO DO ISSQN",oFont08N)
+	oPrinter:Line(nLinha+002,000,nLinha+002,603,ESPLIN)
+	oPrinter:Line(nLinha+002,000,nLinha+025,000,ESPLIN)
+	oPrinter:Line(nLinha+002,603,nLinha+025,603,ESPLIN)
+	oPrinter:Line(nLinha+025,000,nLinha+025,603,ESPLIN)
+	oPrinter:Say(nLinha+010,002,"INSCRIÇÃO MUNICIPAL",oFont08N)
+	oPrinter:Say(nLinha+020,002,aISSQN[1],oFont08)
+	oPrinter:Line(nLinha+002,150,nLinha+025,150,ESPLIN)
+	oPrinter:Say(nLinha+010,152,"VALOR TOTAL DOS SERVIÇOS",oFont08N)
+	oPrinter:Say(nLinha+020,152,aISSQN[2],oFont08)
+	oPrinter:Line(nLinha+002,300,nLinha+025,300,ESPLIN)
+	oPrinter:Say(nLinha+010,302,"BASE DE CÁLCULO DO ISSQN",oFont08N)
+	oPrinter:Say(nLinha+020,302,aISSQN[3],oFont08)
+	oPrinter:Line(nLinha+002,450,nLinha+025,450,ESPLIN)
+	oPrinter:Say(nLinha+010,452,"VALOR DO ISSQN",oFont08N)
+	oPrinter:Say(nLinha+020,452,aISSQN[4],oFont08)
+
+	oPrinter:Say(nLinha+033,000,"DADOS ADICIONAIS",oFont08N)
+	oPrinter:Line(nLinha+035,000,nLinha+035,603,ESPLIN)
+	oPrinter:Line(nLinha+035,000,nLinha+179,000,ESPLIN)
+	oPrinter:Line(nLinha+035,603,nLinha+179,603,ESPLIN)
+	oPrinter:Line(nLinha+179,000,nLinha+179,603,ESPLIN)
+	oPrinter:Say(nLinha+043,002,"INFORMAÇÕES COMPLEMENTARES",oFont08N)
+
+	nLin := nLinha + 055
 	oPrinter:Say(nLin,002,MemoLine(cMensagem,MAXMSG,1),oFont08)
-	nLin := nLin + 10
+	nLin += 10
 
 	if MLCount(cMensagem,MAXMSG) > 1
 		for k := 2 to MLCount(cMensagem,MAXMSG)
 			oPrinter:Say(nLin,002,MemoLine(cMensagem,MAXMSG,k),oFont08)
-			nLin := nLin + 10
+			nLin += 10
 		next
 	endif
 
-	oPrinter:Line(721,350,865,350,ESPLIN)
-	oPrinter:Say(729,352,"RESERVADO AO FISCO",oFont08N)
+	oPrinter:Line(nLinha+035,350,nLinha+179,350,ESPLIN)
+	oPrinter:Say(nLinha+043,352,"RESERVADO AO FISCO",oFont08N)
 
-	nLin := 741
-
+	nLin := nLinha + 055
 	oPrinter:Say(nLin,351,MemoLine(cResFisco,MAXMSG,1),oFont08)
-	nLin := nLin + 10
+	nLin += 10
 
 	if MLCount(cResFisco,MAXMSG) > 1
 		for k := 2 to MLCount(cResFisco,MAXMSG)
 			oPrinter:Say(nLin,351,MemoLine(cResFisco,MAXMSG,k),oFont08)
-			nLin := nLin + 10
+			nLin += 10
 		next
 	endif
 
 	oPrinter:EndPage()
 
-	nFolha := 2
-	nItens := MAXITEM + 1
-
-	while nFolha <= nFolhas
-		oPrinter:StartPage()
-		Cabecalho(0,.F.)
-
-		oPrinter:Say(161,002,"DADOS DO PRODUTO / SERVIÇO",oFont08N)
-		oPrinter:Line(163,000,163,603,ESPLIN)
-		oPrinter:Line(163,000,865,000,ESPLIN)
-		oPrinter:Line(163,603,865,603,ESPLIN)
-		oPrinter:Line(865,000,865,603,ESPLIN)
-
-		nAuxH := 0
-
-		for nK := 1 to Len(aAuxCabec)
-			oPrinter:Line(163,nAuxH,865,nAuxH,2)
-			oPrinter:Say(171,nAuxH + 2,aAuxCabec[nK],oFont08N)
-			nAuxH += aTamCol[nK]
-		next nK
-
-		nLinha := 181
-
-		while nItens <= Len(aItens) .and. nItens <= (MAXITEM + ((nFolha - 1) * MAXITEMP2))
-			nAuxH     := 0
-			aDescLin  := {}
-			nAltLinha := 10
-
-			if !Empty(AllTrim(aItens[nItens][2]))
-				aDescLin := ImpQuebraTexto(AllTrim(aItens[nItens][2]), aTamCol[2] - 4, oPrinter, oFont08)
-			else
-				AAdd(aDescLin, "")
-			endif
-
-			nAltLinha := 10 * Len(aDescLin)
-
-			nAuxH := 0
-			for nJ := 1 to 14
-				if nJ != 2
-					oPrinter:Say(nLinha + 2, nAuxH + 2, aItens[nItens][nJ], oFont08)
-				endif
-				nAuxH += aTamCol[nJ]
-			next nJ
-
-			nColDesc := aTamCol[1]
-			for nLinDesc := 1 to Len(aDescLin)
-				oPrinter:Say(nLinha + 2 + ((nLinDesc - 1) * 10), nColDesc + 2, aDescLin[nLinDesc], oFont08)
-			next nLinDesc
-
-			nLinha += nAltLinha
-			nItens++
-		enddo
-
-		nFolha++
-		oPrinter:EndPage()
-	enddo
-
+	// ==================================================================
+	// TABELA DE IMPOSTOS (se existir)
+	// ==================================================================
 	ASort(aTabImposto,,,{|x,y| x[1] < y[1]})
 
 	if Len(aTabImposto) > 0
@@ -1295,7 +1362,6 @@ static function PreDanfeProc(cModNF)
 			oPrinter:Say(nLinha,160,AllTrim(aTabImposto[nI][2]),oFont08)
 			oPrinter:Say(nLinha,270,AllTrim(aTabImposto[nI][3]),oFont08)
 			oPrinter:Say(nLinha,380,AllTrim(aTabImposto[nI][4]),oFont08)
-
 			nTotal += aTabImposto[nI][5]
 			nLinha += 10
 		next nI
@@ -1305,6 +1371,7 @@ static function PreDanfeProc(cModNF)
 
 		oPrinter:EndPage()
 	endif
+
 return
 
 //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
