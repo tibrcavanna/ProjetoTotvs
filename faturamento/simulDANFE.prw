@@ -403,7 +403,7 @@ static function DPreDanfeNF(cModNF,cNota,cSerie,cCliFor)
 			aNotaF[10] := AllTrim(SF4->F4_TEXTO)+"/"
 		endif
 
-		AAdd(aItens,{Left(&(aCampo[nIndice][6]),6),;
+		AAdd(aItens,{AllTrim(&(aCampo[nIndice][6])),;
 			MemoLine(cDescri,MAXITEMC,1),;
 			cNcm,;
 			&(aCampo[nIndice][9]),;
@@ -819,7 +819,7 @@ static function DPreDanfePV(cModNF, cPedVen, cCliFor)
 		// Recupera impostos calculados pelo MaFis* para este item
 		// aImpostoItem[nItAtu] = {baseICM,valICM,valIPI,alqICM,alqIPI,valPIS,valCOF}
 		AAdd(aItens,{;
-			Left(SC6->C6_PRODUTO,6),;                                                            // [01] Código
+			AllTrim(SC6->C6_PRODUTO),;                                                            // [01] Código
 		MemoLine(cDescri,MAXITEMC,1),;                                                        // [02] Descrição linha 1
 		cNcm,;                                                                                // [03] NCM
 		SC6->C6_CLASFIS,;                                                                     // [04] CST
@@ -1075,7 +1075,7 @@ static function PreDanfeProc(cModNF)
 	oPrinter:Say(440,002,"DADOS DO PRODUTO / SERVIÇO",oFont08N)
 	oPrinter:Line(442,000,442,603,ESPLIN)
 
-	aAuxCabec := {"COD. PROD","DESCRIÇÃO DO PROD./SERV.","NCM/SH","CST","CFOP","UN","QUANT.","V.UNITARIO","V.TOTAL","BC.ICMS","V.ICMS","V.IPI","A.ICMS","A.IPI"}
+	aAuxCabec := {"COD. PROD","DESCRIÇÃO","NCM/SH","CST","CFOP","UN","QUANT.","V.UNITARIO","V.TOTAL","BC.ICMS","V.ICMS","V.IPI","A.ICMS","A.IPI"}
 
 	aAux := {{{},{},{},{},{},{},{},{},{},{},{},{},{},{}}}
 	nLenItens := Len(aItens)
@@ -1495,15 +1495,8 @@ static function RetTamCol(aCabec, aValores, oPrinter, oFontCabec, oFont)
 	local nTotal  := 0
 	local nSobra  := 0
 
-	// -----------------------------------------------------------------
-	// Mínimos por coluna — soma exata de 603 (descrição recebe a sobra)
-	// Col:  01   02    03   04   05   06   07   08   09   10   11   12   13   14
-	aTamMin := { 32,  221,  38,  18,  22,  14,  30,  38,  38,  36,  32,  30,  28,  26 }
-
-	// Máximos por coluna — limita o crescimento dinâmico de cada coluna
-	// A descrição (col 2) recebe o que sobrar (mín 80 garantido)
-	// Col:  01   02   03   04   05   06   07   08   09   10   11   12   13   14
-	aTamMax := { 45,   0,  50,  24,  30,  20,  42,  50,  50,  48,  44,  42,  36,  34 }
+	aTamMin := { 77,  226,  26,  12,  20,  12,  20,  34,  34,  32,  28,  28,  26,  24 }
+	aTamMax := { 96,   0,  34,  18,  28,  18,  24,  46,  46,  46,  40,  40,  34,  32 }
 
 	// Inicializa todas as colunas com seus mínimos
 	for nX := 1 to Len(aCabec)
